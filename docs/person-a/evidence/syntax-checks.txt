@@ -1,0 +1,3 @@
+PASS: Python AST syntax for all delivered Python files
+PASS: bash -n for lab_up.sh and lab_down.sh
+PowerShell syntax checked separately with the native parser.

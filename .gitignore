@@ -1,0 +1,11 @@
+
+*.o
+*.exe
+*.dll
+*.so
+__pycache__/
+*.py[cod]
+/xdp/tests/gcra_host
+.venv/
+.DS_Store
+docs/person-a/evidence/local-*/

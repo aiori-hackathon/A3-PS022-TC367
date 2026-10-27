@@ -1,0 +1,396 @@
+{
+  "date": "2026-10-28",
+  "scope": "Host C tests of the full source, mocked maps/time; not Linux kernel or lab acceptance.",
+  "source_sha256": "f98308526a9c4444f9cd674818b95156122d82e380525c873e5a1861f41ceadb",
+  "checks_passed": 92,
+  "cases": [
+    {
+      "case": "valid_dns",
+      "result": "PASS"
+    },
+    {
+      "case": "arp_ethertype",
+      "result": "PASS"
+    },
+    {
+      "case": "ipv6_ethertype",
+      "result": "PASS"
+    },
+    {
+      "case": "vlan_ethertype",
+      "result": "PASS"
+    },
+    {
+      "case": "tcp_protocol",
+      "result": "PASS"
+    },
+    {
+      "case": "other_udp_port",
+      "result": "PASS"
+    },
+    {
+      "case": "nonfirst_fragment",
+      "result": "PASS"
+    },
+    {
+      "case": "truncated_ip",
+      "result": "PASS"
+    },
+    {
+      "case": "truncated_udp",
+      "result": "PASS"
+    },
+    {
+      "case": "truncated_options",
+      "result": "PASS"
+    },
+    {
+      "case": "bad_ip_version",
+      "result": "PASS"
+    },
+    {
+      "case": "bad_ihl",
+      "result": "PASS"
+    },
+    {
+      "case": "bad_ip_total",
+      "result": "PASS"
+    },
+    {
+      "case": "ip_udp_header_short",
+      "result": "PASS"
+    },
+    {
+      "case": "udp_length_7",
+      "result": "PASS"
+    },
+    {
+      "case": "dns_payload_11",
+      "result": "PASS"
+    },
+    {
+      "case": "udp_length_400",
+      "result": "PASS"
+    },
+    {
+      "case": "padding_not_dns",
+      "result": "PASS"
+    },
+    {
+      "case": "truncated_dns",
+      "result": "PASS"
+    },
+    {
+      "case": "truncated_udp_body",
+      "result": "PASS"
+    },
+    {
+      "case": "first_fragment",
+      "result": "PASS"
+    },
+    {
+      "case": "first_fragment_short",
+      "result": "PASS"
+    },
+    {
+      "case": "ip_options_ihl_6",
+      "result": "PASS"
+    },
+    {
+      "case": "ip_options_ihl_7",
+      "result": "PASS"
+    },
+    {
+      "case": "ip_options_ihl_8",
+      "result": "PASS"
+    },
+    {
+      "case": "ip_options_ihl_9",
+      "result": "PASS"
+    },
+    {
+      "case": "ip_options_ihl_10",
+      "result": "PASS"
+    },
+    {
+      "case": "ip_options_ihl_11",
+      "result": "PASS"
+    },
+    {
+      "case": "ip_options_ihl_12",
+      "result": "PASS"
+    },
+    {
+      "case": "ip_options_ihl_13",
+      "result": "PASS"
+    },
+    {
+      "case": "ip_options_ihl_14",
+      "result": "PASS"
+    },
+    {
+      "case": "ip_options_ihl_15",
+      "result": "PASS"
+    },
+    {
+      "case": "ethernet-short-0",
+      "result": "PASS"
+    },
+    {
+      "case": "ethernet-short-1",
+      "result": "PASS"
+    },
+    {
+      "case": "ethernet-short-2",
+      "result": "PASS"
+    },
+    {
+      "case": "ethernet-short-3",
+      "result": "PASS"
+    },
+    {
+      "case": "ethernet-short-4",
+      "result": "PASS"
+    },
+    {
+      "case": "ethernet-short-5",
+      "result": "PASS"
+    },
+    {
+      "case": "ethernet-short-6",
+      "result": "PASS"
+    },
+    {
+      "case": "ethernet-short-7",
+      "result": "PASS"
+    },
+    {
+      "case": "ethernet-short-8",
+      "result": "PASS"
+    },
+    {
+      "case": "ethernet-short-9",
+      "result": "PASS"
+    },
+    {
+      "case": "ethernet-short-10",
+      "result": "PASS"
+    },
+    {
+      "case": "ethernet-short-11",
+      "result": "PASS"
+    },
+    {
+      "case": "ethernet-short-12",
+      "result": "PASS"
+    },
+    {
+      "case": "ethernet-short-13",
+      "result": "PASS"
+    },
+    {
+      "case": "ipv4-short-14",
+      "result": "PASS"
+    },
+    {
+      "case": "ipv4-short-15",
+      "result": "PASS"
+    },
+    {
+      "case": "ipv4-short-16",
+      "result": "PASS"
+    },
+    {
+      "case": "ipv4-short-17",
+      "result": "PASS"
+    },
+    {
+      "case": "ipv4-short-18",
+      "result": "PASS"
+    },
+    {
+      "case": "ipv4-short-19",
+      "result": "PASS"
+    },
+    {
+      "case": "ipv4-short-20",
+      "result": "PASS"
+    },
+    {
+      "case": "ipv4-short-21",
+      "result": "PASS"
+    },
+    {
+      "case": "ipv4-short-22",
+      "result": "PASS"
+    },
+    {
+      "case": "ipv4-short-23",
+      "result": "PASS"
+    },
+    {
+      "case": "ipv4-short-24",
+      "result": "PASS"
+    },
+    {
+      "case": "ipv4-short-25",
+      "result": "PASS"
+    },
+    {
+      "case": "ipv4-short-26",
+      "result": "PASS"
+    },
+    {
+      "case": "ipv4-short-27",
+      "result": "PASS"
+    },
+    {
+      "case": "ipv4-short-28",
+      "result": "PASS"
+    },
+    {
+      "case": "ipv4-short-29",
+      "result": "PASS"
+    },
+    {
+      "case": "ipv4-short-30",
+      "result": "PASS"
+    },
+    {
+      "case": "ipv4-short-31",
+      "result": "PASS"
+    },
+    {
+      "case": "ipv4-short-32",
+      "result": "PASS"
+    },
+    {
+      "case": "ipv4-short-33",
+      "result": "PASS"
+    },
+    {
+      "case": "udp-short-34",
+      "result": "PASS"
+    },
+    {
+      "case": "udp-short-35",
+      "result": "PASS"
+    },
+    {
+      "case": "udp-short-36",
+      "result": "PASS"
+    },
+    {
+      "case": "udp-short-37",
+      "result": "PASS"
+    },
+    {
+      "case": "udp-short-38",
+      "result": "PASS"
+    },
+    {
+      "case": "udp-short-39",
+      "result": "PASS"
+    },
+    {
+      "case": "udp-short-40",
+      "result": "PASS"
+    },
+    {
+      "case": "udp-short-41",
+      "result": "PASS"
+    },
+    {
+      "case": "dns-short-42",
+      "result": "PASS"
+    },
+    {
+      "case": "dns-short-43",
+      "result": "PASS"
+    },
+    {
+      "case": "dns-short-44",
+      "result": "PASS"
+    },
+    {
+      "case": "dns-short-45",
+      "result": "PASS"
+    },
+    {
+      "case": "dns-short-46",
+      "result": "PASS"
+    },
+    {
+      "case": "dns-short-47",
+      "result": "PASS"
+    },
+    {
+      "case": "dns-short-48",
+      "result": "PASS"
+    },
+    {
+      "case": "dns-short-49",
+      "result": "PASS"
+    },
+    {
+      "case": "dns-short-50",
+      "result": "PASS"
+    },
+    {
+      "case": "dns-short-51",
+      "result": "PASS"
+    },
+    {
+      "case": "dns-short-52",
+      "result": "PASS"
+    },
+    {
+      "case": "dns-short-53",
+      "result": "PASS"
+    },
+    {
+      "case": "source-burst-5",
+      "result": "PASS"
+    },
+    {
+      "case": "source-overload",
+      "admitted": 504,
+      "result": "PASS"
+    },
+    {
+      "case": "global-overload",
+      "admitted": 504,
+      "result": "PASS"
+    },
+    {
+      "case": "source-then-global",
+      "result": "PASS",
+      "counters": {
+        "seen": 1000,
+        "pass_non_ipv4": 0,
+        "pass_non_udp": 0,
+        "pass_non53": 0,
+        "pass_fragment": 0,
+        "pass_truncated": 0,
+        "pass_invalid_ipv4": 0,
+        "dns_pass": 201,
+        "drop_bad_udp": 0,
+        "drop_short_dns": 0,
+        "drop_src": 496,
+        "drop_global": 303,
+        "drop_busy": 0,
+        "drop_state": 0
+      }
+    },
+    {
+      "case": "asymmetric-source-isolation",
+      "result": "PASS",
+      "legitimate_passed": 200
+    },
+    {
+      "case": "source-allocation-failure-closed",
+      "result": "PASS"
+    }
+  ],
+  "gcra_header_sha256": "4df7f08c8bbd304f0927f41ca80b1882a6849b8cca499434b025a72e81283f11"
+}
