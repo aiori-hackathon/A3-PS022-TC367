@@ -3,7 +3,7 @@
 **Project:** Kavach - eBPF/XDP Rate Limiting for DNS Query Floods  
 **Submission ID:** A3-PS022-TC367  
 
-This document logs architectural and design decisions made throughout the lifecycle of the project, including settled rationale, alternatives considered, and items pending lab hardware verification.
+This document logs architectural and design decisions made throughout the lifecycle of the project, including settled rationale, alternatives considered, and items validated on lab hardware.
 
 ---
 
@@ -39,7 +39,7 @@ This document logs architectural and design decisions made throughout the lifecy
 
 ### ADR-005: Scope Boundary: No DNS Query Name Parsing & No IPv6
 - **Status:** Accepted
-- **Context:** Project time budget is strictly limited, and the Linux kernel 5.15 verifier restricts complex looping.
+- **Context:** Project time budget is strictly limited, and the Linux kernel verifier restricts complex looping.
 - **Decision:** Do not parse variable-length DNS question names or labels (no PRSD detection). Treat IPv6 as out of scope by explicitly disabling IPv6 on the test network interface.
 - **Rationale:** Variable-length label iteration risks verifier rejection and path explosion. IPv6 extension header chains complicate bounded parsing and require prefix aggregation.
 
@@ -64,27 +64,41 @@ This document logs architectural and design decisions made throughout the lifecy
   2. Synthetic flood sources are drawn exclusively from RFC 2544 benchmark reservation `198.18.0.0/15`.
   3. Traffic generation tools integrate a destination guard that aborts execution outside the lab subnet.
   4. An automatic background watchdog process detaches the XDP program after $N$ minutes (default: 10 minutes) unless renewed.
-- **Rationale:** Protects campus network infrastructure and prevents developer SSH lockout.
+- **Rationale:** Protects campus network infrastructure and prevents developer lockout.
 
 ---
 
-## Open / Hardware-Dependent Decisions
+## Hardware-Validated & Updated Decisions
 
-### ADR-009: XDP Attachment Mode: Native vs Generic
-- **Status:** Proposed / Pending Lab Hardware
-- **Context:** Native XDP (`xdpdrv`) requires hardware driver support, while Generic XDP (`xdpgeneric`) functions across all Linux interfaces at reduced efficiency.
-- **Strategy:** Verify NIC driver on lab PCs (`ethtool -i`). Attempt `xdpdrv` attachment first. If unsupported, fall back to `xdpgeneric`, clearly documenting the mode in benchmark results.
+### ADR-009: Testbed Target Kernel & OS Update
+- **Status:** Accepted (Updated from Lab Data)
+- **Context:** The initial plan assumed Ubuntu 22.04 LTS with kernel 5.15. The lab PCs were provisioned with Ubuntu 24.04.4 LTS and OEM Kernel `6.14.0-1020-oem`.
+- **Decision:** Target `6.14.0-1020-oem` as the definitive lab environment while keeping the BPF program verifier-clean.
+- **Rationale:** Kernel 6.14 provides built-in BTF (`/sys/kernel/btf/vmlinux`), reliable modern BPF atomic operations, and robust libbpf integration.
 
-### ADR-010: Multi-Core Concurrency Strategy for Global Rate Limiter
-- **Status:** Proposed / Verification Needed
-- **Context:** In multi-queue NIC environments, multiple CPUs concurrently access the global `u64 tat`.
-- **Strategy:** 
-  1. Preferred: Atomic compare-and-swap loop (`__sync_val_compare_and_swap`) using Clang `-mcpu=v3`.
-  2. Alternative: In-kernel `bpf_spin_lock` on array map value.
-  3. Fallback: Tolerated racy update, documenting limiter accuracy variance.
+### ADR-010: Multi-Core Concurrency via BPF Atomics
+- **Status:** Accepted
+- **Context:** Kernel 6.14 natively supports 64-bit BPF atomic operations with Clang `-mcpu=v3`.
+- **Decision:** Implement atomic compare-and-swap (`__sync_val_compare_and_swap`) for updating the global `u64 tat` in `map_glob_tat`.
+- **Rationale:** Eliminates race conditions across multiple CPU cores on the Intel Core Ultra 5 245 without requiring heavier spinlocks.
 
-### ADR-011: Authoritative DNS Server Selection (NSD vs Knot)
-- **Status:** Proposed
-- **Context:** The target server requires an authoritative DNS daemon with Response Rate Limiting (RRL) disabled.
-- **Decision:** Default to NSD (or Knot DNS) depending on package availability on Ubuntu 22.04 LTS lab images, with RRL modules explicitly disabled.
+### ADR-011: Physical Testbed Cabling & Single NIC Isolation
+- **Status:** Accepted
+- **Context:** The two HP ProDesk PCs have only one physical NIC (`eno1`, Intel `e1000e`), initially connected to the campus network (`10.126.12.x/16`).
+- **Decision:** 
+  1. Complete package installation over the campus LAN.
+  2. Disconnect `eno1` from the campus network.
+  3. Physically connect PC 1 and PC 2 directly with a CAT6 Ethernet cable on `eno1`.
+  4. Assign static IPs `10.99.0.1/24` (PC 2, Gen) and `10.99.0.2/24` (PC 1, Target).
+- **Rationale:** Prevents any packet flood from leaking to the institutional network and strictly complies with the lab containment rule.
 
+### ADR-012: DNS Server Selection: NSD
+- **Status:** Accepted
+- **Context:** Need an authoritative DNS daemon on Ubuntu 24.04 with simple zone management and disableable RRL.
+- **Decision:** Use NSD (`sudo apt install nsd`) bound strictly to `10.99.0.2:53` with zero Response Rate Limiting enabled.
+- **Rationale:** NSD is lightweight, authoritative-only, and easily pinned to a single core for controlled saturation testing.
+
+### ADR-013: XDP Attachment Mode Strategy for `e1000e`
+- **Status:** In Progress / Validation Protocol
+- **Context:** Both PCs use Intel Gigabit `eno1` powered by the `e1000e` driver.
+- **Decision:** Attempt native driver attachment (`xdpdrv`) first. If `e1000e` under kernel 6.14 rejects `xdpdrv`, fall back to generic mode (`xdpgeneric`) and log the mode in all experiment outputs.

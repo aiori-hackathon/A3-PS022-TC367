@@ -76,7 +76,24 @@ sudo bpftool map dump pinned /sys/fs/bpf/kavach/maps/map_stats
 
 ## 4. Troubleshooting Packet Drops and Network Anomalies
 
-### 4.1 Missing Expected Drops
+### 4.1 Intel `e1000e` Driver & XDP Attach Verification
+The lab PCs use the Intel `e1000e` Gigabit driver on Linux kernel `6.14.0-1020-oem`.
+- Check active attach mode:
+  ```bash
+  ip link show dev eno1
+  # Look for "xdp" (native xdpdrv) or "xdpgeneric" (generic mode)
+  ```
+- If native attach (`xdpdrv`) fails with `Operation not supported` or MTU errors:
+  - Verify MTU is standard 1500: `ip link set dev eno1 mtu 1500`
+  - Check `dmesg -T | grep -E 'e1000e|xdp'` for driver ring buffer allocation rejections.
+  - Fall back to generic mode if necessary: `ip link set dev eno1 xdpgeneric obj xdp/dns_ratelimit.bpf.o sec xdp`
+- Verify CPU frequency scaling is pinned:
+  ```bash
+  cat /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
+  # Must report "performance" across all 14 cores
+  ```
+
+### 4.2 Missing Expected Drops or Leakage
 - Verify XDP attach mode:
   ```bash
   ip link show dev <iface>

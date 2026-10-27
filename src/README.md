@@ -43,17 +43,30 @@ src/
 ├── README.md                  # Project overview, architecture, and quick start guide
 ├── docs/                      # Technical specifications and architectural records
 │   ├── architecture.md        # Detailed packet pipeline, GCRA math, and map definitions
-│   ├── decisions.md           # Architecture Decision Records (ADRs: settled vs open)
-│   └── known-issues.md        # Verifier constraints, hardware caveats, and limitations
+│   ├── decisions.md           # Architecture Decision Records (ADRs: settled vs lab-validated)
+│   ├── known-issues.md        # Verifier constraints, single NIC hardware caveats, and limitations
+│   └── setup.md               # Lab hardware inventory, Ubuntu 24.04 specs, and tuning guide
 └── .agents/                   # Operational agent skills
     └── skills/
-        ├── debugging/         # eBPF verifier, dmesg, bpftool, and drop tracing skill
+        ├── debugging/         # eBPF verifier, e1000e driver, bpftool, and drop tracing skill
         │   └── SKILL.md
-        ├── code-review/       # eBPF safety, verifier compliance, bounds checks skill
+        ├── code-review/       # eBPF safety, verifier compliance, isolation guard review skill
         │   └── SKILL.md
-        └── testing/           # Acceptance testing, veth namespaces, and matrix runner skill
+        └── testing/           # Acceptance testing, physical lab setup, and matrix runner skill
             └── SKILL.md
 ```
+
+---
+
+## 4. Confirmed Physical Testbed Profile (Lab Host Pair)
+
+From the B0 fact collection on 27 Oct 2026:
+- **Workstations:** 2x HP ProDesk 4 Tower G1i Desktop AI PCs (Twin hardware).
+- **CPUs:** Intel(R) Core(TM) Ultra 5 245 (14 cores, 14 threads).
+- **RAM & Storage:** 30 GiB RAM, 488 GB NVMe SSD per machine.
+- **OS & Kernel:** Ubuntu 24.04.4 LTS, Kernel `6.14.0-1020-oem` (BTF enabled, BPF atomics supported).
+- **Network Interface:** Onboard Intel Gigabit `eno1` (Driver: `e1000e`). Direct CAT6 cable between PC 1 (`10.99.0.2`) and PC 2 (`10.99.0.1`).
+- **Tuning:** CPU governor forced to `performance`, `unattended-upgrades` disabled, `ufw` disabled, IPv6 disabled on `eno1`.
 
 ---
 

@@ -110,7 +110,7 @@ The deck's Deployment Timeline (6-30 Oct) is now **obsolete**; use section 14.
 
 ## 7. XDP filter specification (Person A owns this)
 
-**Language/toolchain:** restricted C, clang `-target bpf -O2 -g`, libbpf headers. Target kernel for the lab: **Ubuntu 22.04 LTS** (default kernel likely **5.15**, **[VERIFY]** with `uname -r`; clang 14; libbpf 0.5; `bpftool` from `linux-tools-*`). **The program must load on kernel 5.15's verifier**, not just on newer development kernels. Avoid libbpf 1.x-only APIs. If you get `asm/types.h not found`, add `-I/usr/include/$(uname -m)-linux-gnu`.
+**Language/toolchain:** restricted C, clang `-target bpf -O2 -g`, libbpf headers. Confirmed lab platform: **Ubuntu 24.04.4 LTS** with OEM kernel **6.14.0-1020-oem** (verified 27 Oct 2026; BTF enabled in `/sys/kernel/btf/vmlinux`; BPF atomic CAS supported). Clang 14/18. If you get `asm/types.h not found`, add `-I/usr/include/$(uname -m)-linux-gnu`. Ensure bytecode compiles cleanly with `-mcpu=v3`.
 
 ### 7.1 Bounded parsing
 
@@ -311,11 +311,24 @@ Checks: `ip netns exec gen ping -c2 10.99.0.2`; `ip netns exec gen dig @10.99.0.
 
 **Caution:** an Arch (rolling) kernel/clang is newer than Ubuntu 22.04's. A program that loads on Arch can still be **rejected by the 5.15 verifier**. Test A's code in an Ubuntu 22.04 VM (QEMU/virt-manager) or on the lab PC as early as possible.
 
-### 12.2 Final: two physical lab PCs
-- Installing **Ubuntu 22.04 LTS**, available from **27 Oct 2026**. Kernel, NIC driver and NIC model are **unknown until the B0 fact collector is run**. Plan on **generic XDP mode** unless native works.
-- Needs: two PCs (identical if possible), a second NIC or USB Ethernet adapter on each, a direct Ethernet cable (or dedicated switch), root/sudo, ability to install packages (or offline `.deb` files on a USB drive), time slots (the matrix needs about 3 h of pure run time for the target tier).
-- Typical packages (**[VERIFY]** names with `apt-cache policy`): `clang llvm libbpf-dev linux-tools-common linux-tools-generic linux-tools-$(uname -r) nftables ethtool sysstat nsd python3-pandas python3-matplotlib netsniff-ng` (dnsperf may need another source).
-- Test link: pick a private subnet (e.g. `10.99.0.0/24`); mark the test NIC **unmanaged by NetworkManager** (avoid DHCP); keep SSH/management on a separate NIC; keep physical console access in case of lockout; disable IPv6 on the test NIC.
+### 12.2 Final: two physical lab PCs (Confirmed via B0 Collector 27 Oct 2026)
+- **Hosts:** Two twin HP ProDesk 4 Tower G1i Desktop AI PCs (`aiori-HP-ProDesk-4...` and `aiori-2-HP-ProDesk-4...`).
+- **CPU:** Intel(R) Core(TM) Ultra 5 245 (14 cores, 14 threads).
+- **RAM / Disk:** 30 GiB RAM (~26 GiB free), 488 GB NVMe ext4 (~450 GB free).
+- **OS / Kernel:** Ubuntu 24.04.4 LTS, Kernel `6.14.0-1020-oem`. BTF is enabled (`/sys/kernel/btf/vmlinux`).
+- **Network Interface & Driver:** Onboard Intel Gigabit `eno1` (Driver: `e1000e`, 1000 Mb/s Full Duplex).
+- **⚠️ Single NIC Constraint:** Both PCs expose only `eno1` (originally connected to campus LAN `10.126.12.x/16`). **Flood traffic must never reach campus LAN.** Procedure:
+  1. Install all apt packages over campus network first.
+  2. Disconnect `eno1` from the campus network on both PCs.
+  3. Direct-connect `eno1` of PC 1 (Target, `10.99.0.2/24`) and PC 2 (Generator, `10.99.0.1/24`) with a CAT6 cable.
+  4. Work via physical console or secondary USB-Ethernet adapter.
+- **Required Host Tuning:**
+  - Set governor: `echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor`
+  - Stop jitter: `sudo systemctl stop unattended-upgrades && sudo ufw disable`
+  - Disable IPv6: `sysctl -w net.ipv6.conf.all.disable_ipv6=1 net.ipv6.conf.eno1.disable_ipv6=1`
+  - Server `rp_filter=0`: `sysctl -w net.ipv4.conf.all.rp_filter=0 net.ipv4.conf.eno1.rp_filter=0`
+- **Missing Packages to Install:**
+  `sudo apt install -y clang llvm libbpf-dev linux-tools-common linux-tools-generic nsd dnsperf netsniff-ng python3-pandas python3-matplotlib python3-yaml sysstat ethtool`
 
 ### 12.3 B0 checklist (lab readiness): what to verify
 Written lab permission; mentor approval for flood tests; root/sudo; package install possible; reboot/reset behavior of the PCs; time slots; kernel (`uname -r`, plan assumes >= 5.15); OS; NIC list and **driver** (`ethtool -i`); link speed; queue count (`ethtool -l`); CPU cores/governor; BPF support (`/sys/kernel/btf/vmlinux`, `CONFIG_BPF`, `CONFIG_BPF_SYSCALL`, bpffs mounted); management vs test NIC identification; no existing firewall surprises (`sudo nft list ruleset`, read only); IPv6 state; installed tools; auto-updates (`unattended-upgrades`) and sleep settings; disk/RAM. Read-only collector (run on each PC; send output to Person A):

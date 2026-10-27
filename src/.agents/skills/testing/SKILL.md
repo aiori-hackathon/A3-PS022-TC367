@@ -1,15 +1,59 @@
 ---
 name: testing
-description: Executing unit tests, verifier validation, network namespace integration testing, traffic generation scenarios, and baseline benchmarks in Kavach.
+description: Executing unit tests, verifier validation, network namespace integration testing, physical lab bring-up, traffic generation scenarios, and baseline benchmarks in Kavach.
 ---
 
 # Testing and Validation Skill
 
-This skill defines the complete testing and validation lifecycle for Kavach, spanning local development network namespaces to physical lab host-pair benchmarking.
+This skill defines the complete testing and validation lifecycle for Kavach, spanning local development network namespaces to the physical lab host-pair (HP ProDesk 4 Tower G1i PCs, Ubuntu 24.04 LTS, Kernel 6.14.0-oem).
 
 ---
 
-## 1. Local Network Namespace Test Environment Setup
+## 1. Physical Lab Host Bring-Up Protocol (Two HP ProDesk PCs)
+
+### 1.1 Package Installation (Run over Campus LAN before Disconnect)
+On both PC 1 (`aiori-HP-ProDesk-4...`) and PC 2 (`aiori-2-HP-ProDesk-4...`):
+```bash
+sudo apt update
+sudo apt install -y \
+    clang llvm libbpf-dev linux-tools-common linux-tools-generic \
+    nsd dnsperf netsniff-ng \
+    python3-pandas python3-matplotlib python3-yaml \
+    sysstat ethtool
+```
+
+### 1.2 System Tuning & Single-NIC Direct Cabling
+1. Disconnect `eno1` from the campus wall jack / switch on both PCs.
+2. Connect a direct CAT6 Ethernet patch cable between `eno1` (PC 1) and `eno1` (PC 2).
+3. On PC 1 (Target / Server):
+   ```bash
+   sudo ip addr flush dev eno1
+   sudo ip addr add 10.99.0.2/24 dev eno1
+   sudo ip link set dev eno1 up
+   echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
+   sudo systemctl stop unattended-upgrades && sudo ufw disable
+   sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1 net.ipv6.conf.eno1.disable_ipv6=1
+   sudo sysctl -w net.ipv4.conf.all.rp_filter=0 net.ipv4.conf.eno1.rp_filter=0
+   ```
+4. On PC 2 (Traffic Generator):
+   ```bash
+   sudo ip addr flush dev eno1
+   sudo ip addr add 10.99.0.1/24 dev eno1
+   sudo ip link set dev eno1 up
+   echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
+   sudo systemctl stop unattended-upgrades && sudo ufw disable
+   sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1 net.ipv6.conf.eno1.disable_ipv6=1
+   sudo sysctl -w net.ipv4.ip_forward=0
+   ```
+5. Connectivity sanity check:
+   ```bash
+   # From PC 2:
+   ping -c 3 10.99.0.2
+   ```
+
+---
+
+## 2. Local Network Namespace Test Environment Setup
 
 For local functional testing and development without touching physical interfaces:
 

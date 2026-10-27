@@ -2,7 +2,8 @@
 
 **Submission ID:** A3-PS022-TC367  
 **Project:** eBPF/XDP Rate Limiting for DNS Query Floods in a Lab  
-**Target Platform:** Linux Kernel 5.15+ (Ubuntu 22.04 LTS), Clang 14 / libbpf  
+**Target Platform:** Linux Kernel 6.14.0-1020-oem (Ubuntu 24.04.4 LTS), Clang 14/18, libbpf  
+**Hardware Profile:** HP ProDesk 4 Tower G1i (Intel Core Ultra 5 245, 14 cores, Intel e1000e GbE)  
 
 ---
 
@@ -229,8 +230,8 @@ The evaluation order is strictly **Per-Source first, Global second**:
 On multi-core systems, multiple RX ring buffers process incoming packets concurrently across different CPU cores.
 
 1. **Global Bucket Race Condition:** Multiple CPUs reading and updating the single global `u64 tat` simultaneously can cause lost updates or stale reads.
-2. **Design Hierarchy:**
-   - **Preferred: BPF Atomic CAS (`__sync_val_compare_and_swap`):** Uses kernel 5.12+ 64-bit BPF atomic operations with Clang `-mcpu=v3` in a bounded compare-and-swap retry loop.
+2. **Design Implementation on Lab Kernel (Linux 6.14.0-oem):**
+   - **Primary: BPF Atomic CAS (`__sync_val_compare_and_swap`):** Fully supported on the lab's 6.14.0 kernel using Clang `-mcpu=v3`. Employs a bounded compare-and-swap retry loop to safely update global $TAT$ under multi-core traffic ingestion.
    - **Alternative: `bpf_spin_lock`:** Supported inside BPF array map elements.
    - **Fallback: Tolerated Racy Update:** Under massive flood conditions, slight timing approximation in the global timestamp has minimal operational impact on aggregate throughput control.
 

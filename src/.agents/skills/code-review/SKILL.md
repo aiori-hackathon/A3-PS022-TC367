@@ -14,7 +14,11 @@ This skill provides an authoritative checklist and review procedure for validati
 Before any script or program is merged or executed, verify the following non-negotiable safety conditions:
 
 - [ ] **Strict Lab Destination Guard:**
-  Does the traffic generator verify that the target IP address falls strictly inside the lab subnet (`10.99.0.0/24`)? Any script attempting to send packets outside this subnet must immediately exit with an error.
+  Does the traffic generator verify that the target IP address falls strictly inside the lab subnet (`10.99.0.0/24`)? Any script attempting to send packets outside this subnet (e.g. into the campus LAN `10.126.0.0/16`) must immediately exit with a fatal error.
+- [ ] **Physical Network Isolation & Single NIC Guard:**
+  Is `eno1` verified to be physically disconnected from the campus network and wired directly to the peer machine before flood scripts run?
+- [ ] **CPU Frequency Governor Check:**
+  Is the CPU scaling governor verified to be set to `performance` on all cores prior to running metrics?
 - [ ] **Synthetic Source Range:**
   Are synthetic flood source IPs drawn exclusively from the benchmark reservation `198.18.0.0/15`?
 - [ ] **Interface Safety Check:**

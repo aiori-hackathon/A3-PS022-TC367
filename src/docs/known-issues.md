@@ -2,34 +2,54 @@
 
 **Project:** Kavach - eBPF/XDP Rate Limiting for DNS Query Floods  
 **Submission ID:** A3-PS022-TC367  
-
-This document tracks known architectural limitations, verifier compatibility issues, and environment-specific constraints.
-
----
-
-## 1. Kernel Verifier & Toolchain Compatibility
-
-### Kernel 5.15 Verifier Restrictions
-- **Context:** The target lab workstations run Ubuntu 22.04 LTS (default kernel 5.15, Clang 14, libbpf 0.5).
-- **Issue:** Modern eBPF features supported on recent kernels (Linux 6.x, modern libbpf 1.x) may be rejected by the Linux 5.15 verifier:
-  - Loop bounded verifications are strictly bounded.
-  - 64-bit atomic operations require Clang `-mcpu=v3` flags.
-  - Libbpf 1.0+ API calls are not backwards-compatible with libbpf 0.5.
-- **Mitigation:**
-  - Compile with restricted C idioms targeting kernel 5.15.
-  - Test all eBPF objects in an Ubuntu 22.04 LTS environment before lab deployment.
-  - Include `-I/usr/include/$(uname -m)-linux-gnu` if `asm/types.h` is missing.
+**Updated:** 27 October 2026 (incorporating B0 lab fact findings)  
 
 ---
 
-## 2. Driver & Operating Mode Differences
+## 1. Physical Hardware & Testbed Topology Constraints
 
-### Generic XDP (`xdpgeneric`) Performance Differential
-- **Issue:** If lab NICs lack driver-level native XDP support (`xdpdrv`), Kavach must attach in Generic mode (`xdpgeneric`).
-- **Impact:** In Generic mode, the Linux networking core allocates `struct sk_buff` *before* invoking the XDP program. While packet drop logic functions identically, CPU cycle savings are substantially reduced compared to native driver-level drops.
-- **Mitigation:**
-  - Clearly identify and log the active XDP mode (`xdpdrv` vs `xdpgeneric`) in all benchmark outputs.
-  - Treat Generic mode results as valid functional validation, noting the CPU overhead limitation in the final report.
+### Single NIC Interface (`eno1`) on Lab Workstations
+- **Observation:** `ip -br link` reports only `lo` and `eno1` on both HP ProDesk PCs. The `eno1` port was initially attached to the campus network (`10.126.12.x/16`).
+- **Risk:** If flood traffic is generated while `eno1` is connected to the campus network, institutional switches and firewalls will be flooded, violating safety rules.
+- **Enforced Solution:**
+  1. Both machines must be physically disconnected from the campus network before running any traffic generators.
+  2. A direct physical CAT6 patch cable must bridge `eno1` (PC 1) and `eno1` (PC 2).
+  3. Work must proceed via direct console access (physical monitor and keyboard) or via an added USB-Ethernet adapter dedicated to management.
+
+### CPU Frequency Scaling (`powersave` Governor)
+- **Observation:** Both machines report `/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor` set to `powersave`.
+- **Impact:** Dynamic CPU clock frequency throttling during flood ramp-up will introduce severe measurement jitter in CPU utilization (`mpstat`) and query response latencies.
+- **Enforced Solution:** The CPU governor must be explicitly forced to `performance` on all 14 cores prior to benchmark execution:
+  ```bash
+  echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
+  ```
+
+### Background Service Noise (`unattended-upgrades`, `ufw`)
+- **Observation:** `unattended-upgrades` and `ufw` are active by default on Ubuntu 24.04.
+- **Impact:** Periodic apt background scans and default firewall hooks cause packet drops and spurious CPU spikes.
+- **Enforced Solution:** Disable `unattended-upgrades` and `ufw` on both test machines.
+
+---
+
+## 2. Kernel & Toolchain Specifics
+
+### Target Kernel: `6.14.0-1020-oem` (Ubuntu 24.04.4 LTS)
+- **Status:** Verified.
+- **Advantages:** Full BTF support (`/sys/kernel/btf/vmlinux`), reliable 64-bit BPF atomics, modern libbpf support.
+- **Cross-Environment Warning:** If developing or testing on older distributions (such as Ubuntu 22.04 with kernel 5.15), avoid kernel 6.x-specific kfuncs or newer libbpf APIs that might break if executed on older kernels.
+
+### Missing Packages in Base Image
+- **Status:** Neither PC currently has `clang`, `nsd`, `dnsperf`, or `trafgen` (`netsniff-ng`).
+- **Action:** Must be installed via `apt` while campus internet access is available on `eno1` before cable reconfiguration.
+
+---
+
+## 3. Driver & Operating Mode Differences
+
+### Intel `e1000e` Driver & Native XDP (`xdpdrv`)
+- **Context:** Both lab machines use onboard Intel gigabit interfaces driven by `e1000e`.
+- **Behavior:** The Linux `e1000e` driver has native XDP support, but may enforce constraints on MTU (typically must be <= 1500) and packet buffer allocations.
+- **Fallback:** If `xdpdrv` fails to attach or drops the link, the loader must fall back to `xdpgeneric`, logging the generic mode status.
 
 ### Veth Namespace Development Limitations
 - **Issue:** Network namespaces connected via `veth` pairs share the host CPU and kernel scheduler.
@@ -38,7 +58,7 @@ This document tracks known architectural limitations, verifier compatibility iss
 
 ---
 
-## 3. Protocol & Filtering Scope Limitations
+## 4. Protocol & Filtering Scope Limitations
 
 ### Non-First IP Fragments Bypass
 - **Issue:** Non-first fragments lack UDP headers and destination port information.
@@ -59,18 +79,13 @@ This document tracks known architectural limitations, verifier compatibility iss
 
 ---
 
-## 4. Rate Limiting Dynamics & Map Behavior
+## 5. Rate Limiting Dynamics & Map Behavior
 
 ### LRU Hash Map Eviction Under Massive Distributed Floods (S2)
 - **Issue:** Under scenario S2 (tens of thousands of spoofed source IPs), the `BPF_MAP_TYPE_LRU_HASH` reaches capacity and evicts older keys.
 - **Behavior:** When an evicted IP address returns, it is treated as a newly observed flow, granting it a fresh initial burst tolerance window.
-- **Mitigation:** This behavior is inherent to finite-memory state tracking. The global rate limiter serves as the secondary backstop against aggregate volume exhaustion.
+- **Mitigation:** Inherent to finite-memory state tracking. The global rate limiter serves as the secondary backstop against aggregate volume exhaustion.
 
 ### nftables Dynamic Set Inelasticity
 - **Issue:** In baseline configurations (B1/B2), `nftables` dynamic sets do not support LRU eviction.
 - **Behavior:** When the set reaches its configured maximum limit (`size 65535`), new IP entries are dropped or rejected until older elements timeout, diverging from BPF LRU behavior under distributed floods.
-
-### Multi-Core Concurrency on Global TAT
-- **Issue:** In multi-queue setups, concurrent updates to the single global Theoretical Arrival Time ($TAT$) can experience atomic contention or race conditions.
-- **Impact:** Potential minor limiter accuracy variance (+/- 5%) at multi-gigabit saturating loads.
-
