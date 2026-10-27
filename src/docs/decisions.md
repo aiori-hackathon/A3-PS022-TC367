@@ -151,5 +151,5 @@ This document logs architectural and design decisions made throughout the lifecy
 - **Verification Protocol:**
   1. Synchronously execute the telemetry collector in `srv` alongside the open-loop client in `gen` (100 QPS).
   2. Acceptance threshold: Under unflooded conditions, legitimate query success rate must achieve $\ge 99.0\%$ (nominally $100\%$), with zero socket buffer errors (`UdpInErrors == 0`) and sub-millisecond median latency.
-  3. Preserves all raw telemetry artifacts (`metrics_summary.json`, `legit_client.csv`, `cpu_util.csv`, `throughput_pps.csv`) in `results/raw/B0_validation/`.
-- **Rationale:** Proves that the lab harness, DNS daemon, and telemetry pipeline operate with zero packet loss or measurement noise before introducing attack traffic.
+  3. Preserves all raw telemetry artifacts (`metrics_summary.json`, `legit_client.csv`, `cpu_util.csv`, `throughput_pps.csv`) in `results/raw/namespaces_B0_validation/`.
+- **Rationale:** Proves that the lab harness, DNS daemon, and telemetry pipeline operate with zero packet loss or measurement noise before introducing attack traffic, explicitly labeled as namespace-based functional validation.

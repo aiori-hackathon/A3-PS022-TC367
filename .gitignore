@@ -1,0 +1,46 @@
+# ==============================================================================
+# Kavach PS-022: Git Ignore Configuration
+# ==============================================================================
+
+# Compiled eBPF bytecode and object files
+*.o
+*.bpf.o
+*.so
+*.ll
+*.s
+
+# Python bytecode, virtual environments, and caches
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+.pytest_cache/
+
+# Runtime and temporary process artifacts
+*.pid
+*.stdout
+*.log
+*.xfrd
+/tmp/
+
+# High-volume packet capture traces
+*.pcap
+*.pcapng
+
+# Large raw benchmark data captures (preserve directory with .gitkeep)
+# Uncomment or exclude specific bulky test runs to prevent repo bloat:
+results/raw/*
+!results/raw/.gitkeep
+!results/raw/namespaces_B0_validation/
+
+# OS and Editor specific files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+

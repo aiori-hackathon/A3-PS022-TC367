@@ -25,7 +25,7 @@ TARGET_IP="10.99.0.2"
 SRC_IP="10.99.0.1"
 DURATION="${DURATION:-10}"  # 10s for smoke validation (60s for formal matrix)
 QPS="${QPS:-100}"
-OUT_DIR="${OUT_DIR:-$ROOT_DIR/../results/raw/B0_validation}"
+OUT_DIR="${OUT_DIR:-$ROOT_DIR/../results/raw/namespaces_B0_validation}"
 
 RED='\033[1;31m'
 GREEN='\033[1;32m'

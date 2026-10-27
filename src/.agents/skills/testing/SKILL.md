@@ -131,7 +131,7 @@ sudo ./src/scripts/run_b0_test.sh
 - Legitimate query success rate: $100\%$ (minimum $\ge 99\%$).
 - Socket buffer drops (`UdpInErrors`): $0$.
 - Median latency: $< 1.0$ ms over `veth`.
-- Preserves all raw telemetry artifacts in `results/raw/B0_validation/`.
+- Preserves all raw telemetry artifacts in `results/raw/namespaces_B0_validation/`.
 
 ---
 
