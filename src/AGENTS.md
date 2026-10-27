@@ -291,23 +291,12 @@ Calibration needs **no XDP**, so it can run as soon as the lab PCs are ready.
 Functional validation only (generator and server share CPU; veth bypasses a real NIC). Use `taskset` to separate cores.
 
 ```bash
-#!/usr/bin/env bash
-# setup_env.sh: two namespaces joined by a veth pair. Needs root.
-set -euo pipefail
-ip netns add gen; ip netns add srv
-ip link add vgen type veth peer name vsrv
-ip link set vgen netns gen; ip link set vsrv netns srv
-ip -n gen addr add 10.99.0.1/24 dev vgen
-ip -n srv addr add 10.99.0.2/24 dev vsrv
-for n in gen srv; do ip -n $n link set lo up; done
-ip -n gen link set vgen up; ip -n srv link set vsrv up
-for n in gen srv; do ip netns exec $n sysctl -qw net.ipv6.conf.all.disable_ipv6=1; done
-ip netns exec srv sysctl -qw net.ipv4.conf.all.rp_filter=0 net.ipv4.conf.vsrv.rp_filter=0
-ip -n srv route add default via 10.99.0.1
-ip netns exec gen sysctl -qw net.ipv4.ip_forward=0
-# teardown: ip netns del gen; ip netns del srv
+# Automated scripts available in src/scripts/:
+sudo ./src/scripts/setup_env.sh      # creates gen + srv, vgen + vsrv, sets rp_filter=0, disables offloads
+sudo ./src/scripts/status_env.sh     # displays link states, IP addresses, sysctls, ping status
+sudo ./src/scripts/teardown_env.sh   # cleanly terminates namespace processes and deletes links
 ```
-Checks: `ip netns exec gen ping -c2 10.99.0.2`; `ip netns exec gen dig @10.99.0.2 www.lab.test`. If checksum/offload oddities appear, disable offloads on both veth ends with `ethtool -K`.
+Checks: `sudo ip netns exec gen ping -c2 10.99.0.2`; `sudo ip netns exec gen dig @10.99.0.2 www.lab.test`.
 
 **Caution:** an Arch (rolling) kernel/clang is newer than Ubuntu 22.04's. A program that loads on Arch can still be **rejected by the 5.15 verifier**. Test A's code in an Ubuntu 22.04 VM (QEMU/virt-manager) or on the lab PC as early as possible.
 
@@ -482,6 +471,7 @@ Also used: Linux kernel BPF documentation (docs.kernel.org/bpf), nftables docume
 
 ## 20. Instructions for agents
 
+- **Mandatory State & Decision Synchronization (COMPULSORY RULE):** After each milestone, implementation step, code change, or when new architectural/hardware findings emerge, agents MUST systematically and compulsively update all relevant documentation and agent files (`docs/decisions.md` with explicit ADR entries, `docs/known-issues.md`, `docs/setup.md`, `README.md`, and skills in `.agents/skills/`), recording decisions, rationale, commands, and state updates without requiring manual prompting from the user.
 - **Know your role.** If you work on the **XDP program/loader**, focus on sections 4, 7, 12.1-12.2 and the A rows of section 13. If you work on **lab/traffic/baselines/measurement**, focus on sections 3, 6, 8-12 and the B rows of section 13.
 - **Safety first:** never write code that sends traffic to a destination outside the lab subnet; every generator must call the guard. Never attach XDP to a non-test interface. Default to generic mode and the watchdog.
 - **Parameterize everything** (interface, mode, rates, bursts, durations, paths); read limits from the shared params file and the config map. No hardcoded interface names or magic numbers.

@@ -1,0 +1,31 @@
+{
+  "window_duration_seconds": 10.01,
+  "interface": "vsrv",
+  "pinned_core": 1,
+  "throughput": {
+    "total_rx_packets": 953,
+    "total_rx_bytes": 69377,
+    "avg_rx_pps": 95.2,
+    "avg_rx_mbps": 0.06
+  },
+  "cpu_utilization": {
+    "pinned_core_busy_pct": 5.6,
+    "pinned_core_softirq_pct": 0.2,
+    "system_total_busy_pct": 1.61
+  },
+  "drops_by_layer": {
+    "nic_driver_drops": 0,
+    "kernel_softnet_drops": 0,
+    "xdp_bpf_drops": {
+      "total": 0,
+      "per_source": 0,
+      "global": 0,
+      "malformed": 0
+    },
+    "socket_buffer_drops": {
+      "udp_in_errors": 0,
+      "udp_rcvbuf_errors": 0
+    }
+  },
+  "udp_delivered_to_socket": 952
+}

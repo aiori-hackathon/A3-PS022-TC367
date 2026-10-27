@@ -46,6 +46,26 @@ src/
 │   ├── decisions.md           # Architecture Decision Records (ADRs: settled vs lab-validated)
 │   ├── known-issues.md        # Verifier constraints, single NIC hardware caveats, and limitations
 │   └── setup.md               # Lab hardware inventory, Ubuntu 24.04 specs, and tuning guide
+├── scripts/                   # Testbed automation and experiment orchestration scripts
+│   ├── setup_env.sh           # Automated namespace ('gen' & 'srv') and veth pair setup
+│   ├── teardown_env.sh        # Clean removal of namespaces and virtual links
+│   ├── status_env.sh          # Diagnostics and link inspection script
+│   ├── collect.sh             # Telemetry collection orchestrator across test window
+│   ├── collect_metrics.py     # Multi-layer stats engine (CPU softirq, NIC, SNMP, XDP)
+│   └── run_b0_test.sh         # End-to-end Baseline B0 validation runner
+├── baselines/                 # Comparative benchmark firewall and filter definitions
+│   └── none.sh                # Baseline B0 (No filter: detaches XDP, flushes nftables)
+├── traffic/                   # Traffic generation harnesses, legitimate client, and guards
+│   ├── guard.sh               # Non-bypassable boundary check (target <= 10.99.0.0/24, src <= 198.18/15)
+│   ├── guard.py               # Python module & CLI for traffic generator safety enforcement
+│   ├── legit_client.py        # Open-loop client (100 QPS, dedicated IP, p50/p95 latency)
+│   └── run_legit.sh           # Runner wrapper for legitimate client in 'gen' netns
+├── dns/                       # Authoritative DNS server configurations and test zones
+│   ├── nsd.conf               # Production NSD daemon configuration (RRL off, core-pinned)
+│   ├── zones/                 # Authoritative zone definitions (lab.test.zone)
+│   ├── start_dns.sh           # Starts NSD or lightweight fallback in 'srv' namespace
+│   ├── stop_dns.sh            # Graceful shutdown of DNS daemons
+│   └── test_dns.sh            # DNS resolution verification tool
 └── .agents/                   # Operational agent skills
     └── skills/
         ├── debugging/         # eBPF verifier, e1000e driver, bpftool, and drop tracing skill
@@ -82,19 +102,16 @@ From the B0 fact collection on 27 Oct 2026:
 
 ## 5. Development & Testing Quick Start
 
-### 5.1 Local Namespace Environment (Development)
+### 6.1 Local Namespace Environment (Development)
 ```bash
-# Set up isolated namespaces (gen and srv) joined by veth pair
-sudo ip netns add gen
-sudo ip netns add srv
-sudo ip link add vgen type veth peer name vsrv
-sudo ip link set vgen netns gen
-sudo ip link set vsrv netns srv
-sudo ip -n gen addr add 10.99.0.1/24 dev vgen
-sudo ip -n srv addr add 10.99.0.2/24 dev vsrv
-sudo ip -n gen link set lo up && sudo ip -n gen link set vgen up
-sudo ip -n srv link set lo up && sudo ip -n srv link set vsrv up
-sudo ip netns exec srv sysctl -qw net.ipv4.conf.all.rp_filter=0 net.ipv4.conf.vsrv.rp_filter=0
+# Automated setup of isolated namespaces (gen and srv) joined by veth pair
+sudo ./src/scripts/setup_env.sh
+
+# Verify status
+sudo ./src/scripts/status_env.sh
+
+# Teardown when finished
+sudo ./src/scripts/teardown_env.sh
 ```
 
 ### 5.2 Building and Attaching XDP

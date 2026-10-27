@@ -92,13 +92,64 @@ This document logs architectural and design decisions made throughout the lifecy
   4. Assign static IPs `10.99.0.1/24` (PC 2, Gen) and `10.99.0.2/24` (PC 1, Target).
 - **Rationale:** Prevents any packet flood from leaking to the institutional network and strictly complies with the lab containment rule.
 
-### ADR-012: DNS Server Selection: NSD
-- **Status:** Accepted
-- **Context:** Need an authoritative DNS daemon on Ubuntu 24.04 with simple zone management and disableable RRL.
-- **Decision:** Use NSD (`sudo apt install nsd`) bound strictly to `10.99.0.2:53` with zero Response Rate Limiting enabled.
-- **Rationale:** NSD is lightweight, authoritative-only, and easily pinned to a single core for controlled saturation testing.
+### ADR-012: DNS Server Selection: NSD & Zero-RRL Policy
+- **Status:** Accepted & Implemented (27 Oct 2026)
+- **Context:** Need an authoritative DNS daemon with simple zone management and disableable Response Rate Limiting (RRL) to ensure drops originate exclusively from packet filtering layers (XDP/nftables).
+- **Decision:** Standardize on NSD with explicit configuration:
+  1. Bound strictly to `10.99.0.2:53` (preventing host port conflicts).
+  2. Single worker process (`server-count: 1`) pinned to Core 1 (`taskset -c 1`).
+  3. Response Rate Limiting disabled (`rrl-ratelimit: 0`, `rrl-slip: 0`).
+  4. Authoritative zone `lab.test` providing standard RFC 1035 records.
+  5. Built-in pure-Python fallback DNS daemon (`src/dns/mock_dns.py`) and query tester (`src/dns/query_test.py`) to support development environments where NSD is not yet installed.
+- **Rationale:** Guarantees deterministic single-core capacity limits during flood saturation and zero response throttling by the DNS daemon itself.
 
 ### ADR-013: XDP Attachment Mode Strategy for `e1000e`
 - **Status:** In Progress / Validation Protocol
 - **Context:** Both PCs use Intel Gigabit `eno1` powered by the `e1000e` driver.
 - **Decision:** Attempt native driver attachment (`xdpdrv`) first. If `e1000e` under kernel 6.14 rejects `xdpdrv`, fall back to generic mode (`xdpgeneric`) and log the mode in all experiment outputs.
+
+### ADR-014: Generator Safety Guard Architecture & Containment Boundary
+- **Status:** Accepted & Implemented (27 Oct 2026)
+- **Context:** Hard project safety rules strictly prohibit generating traffic outside the isolated lab subnet or leaking spoofed reflection packets into campus or public networks.
+- **Decision:** Implement dual-implementation safety guards in `src/traffic/guard.sh` (pure Bash integer CIDR logic) and `src/traffic/guard.py` (Python `ipaddress` module) supporting both standalone CLI verification and module sourcing.
+- **Enforced Boundaries:**
+  1. Destination Target IP must strictly belong to `10.99.0.0/24` (specifically rejecting campus LAN `10.126.0.0/16`, loopback, or public IPs).
+  2. Synthetic source addresses must strictly reside in RFC 2544 benchmark prefix `198.18.0.0/15`; legitimate client address must be `10.99.0.1`.
+  3. Generator kernel forwarding must be disabled (`net.ipv4.ip_forward = 0`).
+  4. Transmission interfaces cannot be loopback or external gateways.
+- **Rationale:** Pre-execution programmatic assertions prevent operator error from ever leaking flood packets outside the isolated link. Violations immediately abort with exit code `100+`.
+
+### ADR-015: Open-Loop Legitimate Traffic Generator Architecture & Metrics
+- **Status:** Accepted & Implemented (27 Oct 2026)
+- **Context:** To evaluate the real-world impact of DNS flood attacks and mitigation filters, the test harness requires an objective client to measure the experience of a legitimate user.
+- **Decision:** Implement a strictly **open-loop** client (`src/traffic/legit_client.py`) with:
+  1. **Fixed Schedule Transmission:** Emits queries on a deterministic schedule (default 100 QPS, interval 10 ms) using high-resolution timers regardless of whether previous queries were answered or delayed.
+  2. **Dedicated Source Identity:** Binds exclusively to `10.99.0.1`, completely isolated from the synthetic flood address range (`198.18.0.0/15`).
+  3. **Zero Retries & Hard Timeout:** Enforces a 1.5s timeout without retransmissions (retries would mask packet drops during floods).
+  4. **Per-Query Telemetry:** Outputs granular CSV logs (`seq, domain, send_time, recv_time, latency_ms, rcode, status`).
+  5. **Headline Metrics:** Evaluates Legitimate Success Rate ($\frac{\text{Answered}}{\text{Sent}} \times 100\%$) and latency percentiles ($p50, p90, p95, p99$).
+- **Rationale:** Closed-loop clients naturally throttle when backpressure or packet loss occurs, concealing the severity of server degradation. Open-loop generation accurately exposes service degradation and packet loss rates.
+
+### ADR-016: Multi-Layer Telemetry Metric Collector & Drop-by-Layer Accounting
+- **Status:** Accepted & Implemented (27 Oct 2026)
+- **Context:** Evaluating XDP mitigation efficiency against nftables and unfiltered baselines requires synchronous telemetry across multiple architectural layers during the 60-second measurement window.
+- **Decision:** Implement `src/scripts/collect_metrics.py` and `src/scripts/collect.sh` to harvest:
+  1. **CPU Utilization:** Per-core and total busy %, with specific emphasis on software interrupt (%softirq) overhead on the server's pinned core via `/proc/stat` and `mpstat`.
+  2. **Throughput:** Ingestion packet rate (pps) and bandwidth (Mbps) via `/sys/class/net/<iface>/statistics`.
+  3. **Drops by Layer:**
+     - Layer 1 (NIC Driver): `rx_dropped` / `ethtool -S`
+     - Layer 2 (Kernel Softnet): `/proc/net/softnet_stat`
+     - Layer 3 (XDP / eBPF): BPF stats map counters (`drop_source`, `drop_global`, `malformed`)
+     - Layer 4 (Socket Buffer): `/proc/net/snmp` (`UdpInErrors`, `UdpRcvbufErrors`)
+  4. **Output Format:** Generates raw per-second time-series CSVs (`cpu_util.csv`, `throughput_pps.csv`, `bpf_stats.csv`) and a normalized `metrics_summary.json`.
+- **Rationale:** Direct kernel `/proc` and `/sys` scraping eliminates third-party binary dependencies while providing the exact "Drops by Layer" decomposition required by the problem statement.
+
+### ADR-017: Baseline B0 (No Filter) Harness & Validation Protocol
+- **Status:** Accepted & Implemented (27 Oct 2026)
+- **Context:** Baseline B0 serves as the primary control in the experimental matrix, representing standard Linux network stack handling without firewalls or XDP mitigation. It is required for finding the server saturation threshold $S$ during calibration.
+- **Decision:** Implement `src/baselines/none.sh` to enforce complete filter detachment (unloading XDP and flushing `nftables`) and `src/scripts/run_b0_test.sh` to automate end-to-end baseline execution.
+- **Verification Protocol:**
+  1. Synchronously execute the telemetry collector in `srv` alongside the open-loop client in `gen` (100 QPS).
+  2. Acceptance threshold: Under unflooded conditions, legitimate query success rate must achieve $\ge 99.0\%$ (nominally $100\%$), with zero socket buffer errors (`UdpInErrors == 0`) and sub-millisecond median latency.
+  3. Preserves all raw telemetry artifacts (`metrics_summary.json`, `legit_client.csv`, `cpu_util.csv`, `throughput_pps.csv`) in `results/raw/B0_validation/`.
+- **Rationale:** Proves that the lab harness, DNS daemon, and telemetry pipeline operate with zero packet loss or measurement noise before introducing attack traffic.

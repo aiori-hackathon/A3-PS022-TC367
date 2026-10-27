@@ -104,9 +104,10 @@ The lab PCs use the Intel `e1000e` Gigabit driver on Linux kernel `6.14.0-1020-o
   sysctl net.ipv4.conf.all.rp_filter
   sysctl net.ipv4.conf.<iface>.rp_filter
   ```
+- If testing in namespaces (`gen` / `srv`), run `sudo ./src/scripts/status_env.sh` to confirm link states, IP routes, and `rp_filter=0`.
 - Verify DNS server Response Rate Limiting (RRL) is disabled so drops originate exclusively from XDP.
 
-### 4.2 Software Interrupt and Ring Buffer Saturation
+### 4.3 Software Interrupt and Ring Buffer Saturation
 - Inspect dropped packets at the NIC driver layer:
   ```bash
   ethtool -S <iface> | grep -E 'drop|discard|miss'

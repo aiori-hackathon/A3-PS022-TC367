@@ -1,0 +1,31 @@
+$ORIGIN lab.test.
+$TTL 300
+
+@       IN      SOA     ns1.lab.test. hostmaster.lab.test. (
+                        2026102701 ; serial
+                        3600       ; refresh (1 hour)
+                        1800       ; retry (30 mins)
+                        604800     ; expire (1 week)
+                        300        ; minimum TTL (5 mins)
+                        )
+
+@       IN      NS      ns1.lab.test.
+
+@       IN      A       10.99.0.2
+ns1     IN      A       10.99.0.2
+www     IN      A       10.99.0.2
+mail    IN      A       10.99.0.2
+api     IN      A       10.99.0.2
+dns     IN      A       10.99.0.2
+
+test1   IN      A       10.99.0.2
+test2   IN      A       10.99.0.2
+test3   IN      A       10.99.0.2
+test4   IN      A       10.99.0.2
+test5   IN      A       10.99.0.2
+
+*       IN      A       10.99.0.2
+
+@       IN      TXT     "Kavach Lab Authoritative DNS Test Zone"
+www     IN      TXT     "Kavach Web Service"
+

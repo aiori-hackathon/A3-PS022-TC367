@@ -55,60 +55,105 @@ sudo apt install -y \
 
 ## 2. Local Network Namespace Test Environment Setup
 
-For local functional testing and development without touching physical interfaces:
+For local functional testing and development without touching physical interfaces, use the testbed automation scripts in `src/scripts/`:
 
 ```bash
-#!/usr/bin/env bash
-set -euo pipefail
+# 1. Initialize isolated namespaces ('gen' and 'srv') joined by veth pair
+sudo ./src/scripts/setup_env.sh
 
-# 1. Create isolated namespaces
-sudo ip netns add gen
-sudo ip netns add srv
+# 2. Inspect link status, IP assignments, sysctl flags, and ping connectivity
+sudo ./src/scripts/status_env.sh
 
-# 2. Create and link veth pair
-sudo ip link add vgen type veth peer name vsrv
-sudo ip link set vgen netns gen
-sudo ip link set vsrv netns srv
+# 3. Execute commands inside specific namespaces
+sudo ip netns exec gen ping -c 3 10.99.0.2
+sudo ip netns exec srv ip addr show vsrv
 
-# 3. Configure IP addressing on isolated test subnet (10.99.0.0/24)
-sudo ip -n gen addr add 10.99.0.1/24 dev vgen
-sudo ip -n srv addr add 10.99.0.2/24 dev vsrv
-
-# 4. Bring interfaces up
-sudo ip -n gen link set lo up
-sudo ip -n gen link set vgen up
-sudo ip -n srv link set lo up
-sudo ip -n srv link set vsrv up
-
-# 5. Disable IPv6 and configure routing
-sudo ip netns exec gen sysctl -qw net.ipv6.conf.all.disable_ipv6=1
-sudo ip netns exec srv sysctl -qw net.ipv6.conf.all.disable_ipv6=1
-sudo ip netns exec srv sysctl -qw net.ipv4.conf.all.rp_filter=0 net.ipv4.conf.vsrv.rp_filter=0
-sudo ip -n srv route add default via 10.99.0.1
-sudo ip netns exec gen sysctl -qw net.ipv4.ip_forward=0
+# 4. Teardown and clean up virtual links and namespaces
+sudo ./src/scripts/teardown_env.sh
 ```
+
+### 2.1 Generator Safety Guard Self-Test
+Before launching any traffic generator, verify that the guard enforces lab boundaries:
+```bash
+# Valid tests (must succeed with exit code 0)
+./src/traffic/guard.sh --target 10.99.0.2 --source 10.99.0.1
+./src/traffic/guard.sh --target 10.99.0.2 --source 198.18.5.10
+python3 ./src/traffic/guard.py --target 10.99.0.2 --source 198.18.5.10
+
+# Security containment tests (must fail with exit code >= 100)
+./src/traffic/guard.sh --target 10.126.12.151 2>&1 || echo "Blocked campus IP"
+./src/traffic/guard.sh --target 8.8.8.8 2>&1 || echo "Blocked public IP"
+./src/traffic/guard.sh --target 10.99.0.2 --source 1.1.1.1 2>&1 || echo "Blocked unreserved source IP"
+```
+
+### 2.2 Authoritative DNS Server Bring-Up & Resolution Test
+Verify that the DNS server starts cleanly inside the `srv` namespace and resolves queries from `gen`:
+```bash
+# 1. Start DNS Server in 'srv' (NSD or Python fallback, Core 1, RRL off)
+sudo ./src/dns/start_dns.sh
+
+# 2. Query from 'gen' namespace to verify resolution (10.99.0.2:53)
+./src/dns/test_dns.sh
+
+# 3. Stop DNS Server when testing is complete
+sudo ./src/dns/stop_dns.sh
+```
+
+### 2.3 Legitimate Client Open-Loop Verification
+Run the open-loop legitimate client from the `gen` namespace against the DNS server:
+```bash
+# Run test at 100 QPS (e.g. 10s duration = 1,000 queries)
+sudo ip netns exec gen python3 ./src/traffic/legit_client.py \
+    --server 10.99.0.2 --source-ip 10.99.0.1 --qps 100 --duration 10 --output /tmp/kavach_legit_test.csv
+
+# Or use the wrapper script:
+sudo ./src/traffic/run_legit.sh
+```
+*Verification criteria:* Under unflooded conditions, query success rate must be 100% with sub-millisecond latency over `veth` ($p50 < 1.0$ ms).
+
+### 2.4 Telemetry Metric Collection Verification
+Test the multi-layer metric collector during a benchmark window:
+```bash
+# Collect telemetry for 10 seconds inside 'srv' namespace
+sudo ./src/scripts/collect.sh --duration 10 --output-dir /tmp/kavach_metrics_test --netns srv --iface vsrv --core 1
+```
+*Verification criteria:* Inspect `/tmp/kavach_metrics_test/metrics_summary.json` to confirm:
+- Throughput and CPU metrics (total busy % and %softirq) are populated.
+- Drops-by-layer hierarchy (NIC, softnet, XDP, socket buffer) is reported.
+
+### 2.5 Baseline B0 End-to-End Validation Run
+Execute a full automated validation of Baseline B0 (No Filter) in namespaces:
+```bash
+# Run end-to-end B0 baseline test (starts DNS, flushes filters, runs collector & legit client)
+sudo ./src/scripts/run_b0_test.sh
+```
+*Acceptance criteria:*
+- Legitimate query success rate: $100\%$ (minimum $\ge 99\%$).
+- Socket buffer drops (`UdpInErrors`): $0$.
+- Median latency: $< 1.0$ ms over `veth`.
+- Preserves all raw telemetry artifacts in `results/raw/B0_validation/`.
 
 ---
 
-## 2. Person A Acceptance Test Protocol
+## 3. Person A Acceptance Test Protocol
 
 Run these verification tests inside the development namespace to validate the XDP program:
 
-### 2.1 Compilation & Verifier Acceptance
+### 3.1 Compilation & Verifier Acceptance
 ```bash
 clang -target bpf -O2 -g -Wall -c xdp/dns_ratelimit.bpf.c -o xdp/dns_ratelimit.bpf.o
 sudo ip netns exec srv bpftool prog loadall xdp/dns_ratelimit.bpf.o /sys/fs/bpf/kavach type xdp pinmaps /sys/fs/bpf/kavach/maps
 ```
 *Criteria:* Compiles without warnings; passes Linux kernel 5.15 verifier without errors.
 
-### 2.2 Packet Parsing & Drop Verification
+### 3.2 Packet Parsing & Drop Verification
 Inject synthetic packets using `bpftool prog run` or Scapy:
 1. **Valid DNS Query:** UDP/53 with length >= 12 bytes -> Verdict: `XDP_PASS`, increments `dns_seen` and `passed`.
 2. **Malformed DNS Query:** UDP/53 with DNS payload < 12 bytes -> Verdict: `XDP_DROP`, increments `dns_seen` and `malformed`.
 3. **Non-DNS Packet:** UDP dst port != 53 or TCP/ICMP -> Verdict: `XDP_PASS`, increments `non_dns_passed`.
 4. **Non-First Fragment:** IPv4 fragment offset > 0 -> Verdict: `XDP_PASS`, increments `fragments_passed`.
 
-### 2.3 Rate Limiter Accuracy & Concurrency Tests
+### 3.3 Rate Limiter Accuracy & Concurrency Tests
 1. **Under-Limit Test:** Send queries at 0.5x configured rate -> Expect ~100% pass rate.
 2. **Over-Limit Test:** Send queries at 2.0x configured rate -> Expect ~50% pass rate (+/- 10%).
 3. **Burst Capacity Test:** Send instantaneous burst of $N$ packets -> All $N$ packets pass up to configured `burst_tolerance`.
@@ -118,7 +163,7 @@ Inject synthetic packets using `bpftool prog run` or Scapy:
 
 ---
 
-## 3. Calibration & Parameter Determination
+## 4. Calibration & Parameter Determination
 
 Before running comparative benchmark matrices:
 1. **Pin Server Core:** Pin the DNS daemon process and network queue interrupts to a single core:
@@ -136,7 +181,7 @@ Before running comparative benchmark matrices:
 
 ---
 
-## 4. Benchmark Matrix Execution Protocol
+## 5. Benchmark Matrix Execution Protocol
 
 Each benchmark run follows a strict temporal sequence:
 
