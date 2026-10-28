@@ -101,8 +101,8 @@ ip netns exec "$NS_SRV" sysctl -qw net.ipv4.conf.all.rp_filter=0
 ip netns exec "$NS_SRV" sysctl -qw net.ipv4.conf.default.rp_filter=0
 ip netns exec "$NS_SRV" sysctl -qw "net.ipv4.conf.${IF_SRV}.rp_filter=0"
 
-# 6.3 Routing: server defaults route back to generator
-ip -n "$NS_SRV" route add default via "$IP_GEN"
+# 6.3 Routing: route synthetic benchmark subnet back to generator (avoids default route conflict with XDP guard)
+ip -n "$NS_SRV" route add 198.18.0.0/15 via "$IP_GEN" dev "$IF_SRV"
 
 # 6.4 Generator containment: disable IP forwarding so spoofed replies never escape
 ip netns exec "$NS_GEN" sysctl -qw net.ipv4.ip_forward=0

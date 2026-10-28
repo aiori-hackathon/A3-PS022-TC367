@@ -153,3 +153,14 @@ This document logs architectural and design decisions made throughout the lifecy
   2. Acceptance threshold: Under unflooded conditions, legitimate query success rate must achieve $\ge 99.0\%$ (nominally $100\%$), with zero socket buffer errors (`UdpInErrors == 0`) and sub-millisecond median latency.
   3. Preserves all raw telemetry artifacts (`metrics_summary.json`, `legit_client.csv`, `cpu_util.csv`, `throughput_pps.csv`) in `results/raw/namespaces_B0_validation/`.
 - **Rationale:** Proves that the lab harness, DNS daemon, and telemetry pipeline operate with zero packet loss or measurement noise before introducing attack traffic, explicitly labeled as namespace-based functional validation.
+
+### ADR-018: Integration of Person A XDP Engine & Control Plane Contract
+- **Status:** Accepted & Merged into `main` (28 Oct 2026)
+- **Context:** Person A completed Phase A1/A2, delivering the core eBPF/XDP filter (`xdp/kavach_xdp.c`), the GCRA limiter library (`xdp/gcra.h`), and the user-space controller (`xdp/kavach_ctl.py`).
+- **Decision:** Merged branch `person-a` into `main` and adopted the frozen handoff interface:
+  1. **14-Counter Telemetry Schema:** `timestamp_ns,seen,pass_non_ipv4,pass_non_udp,pass_non53,pass_fragment,pass_truncated,pass_invalid_ipv4,dns_pass,drop_bad_udp,drop_short_dns,drop_src,drop_global,drop_busy,drop_state`.
+  2. **Config ABI:** 40-byte native-endian structure (`kavach_config`) via `=QQQQII`.
+  3. **Concurrency:** BPF atomic CAS (`__sync_val_compare_and_swap`) with bounded 8-attempt retry loop; fallback to `kavach_xdp_approx.o` if needed.
+  4. **Watchdog Protocol:** UUID generation tokens with atomic conditional detachment via `libbpf` `bpf_xdp_detach`.
+  5. **Directory Structure:** Root-level `xdp/` and `docs/person-a/` coexisting harmoniously with `src/`.
+- **Rationale:** Guarantees verifier safety, rigorous mathematical drop-counter accounting, and clean operational decoupling between Person A's kernel filter and Person B's measurement harness.

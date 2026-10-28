@@ -38,42 +38,43 @@ High-volume UDP/53 DNS query floods overwhelm Linux systems because the operatin
 ## 3. Directory Structure
 
 ```text
-src/
-├── AGENTS.md                  # Comprehensive project context, guidelines, and agent instructions
-├── README.md                  # Project overview, architecture, and quick start guide
-├── docs/                      # Technical specifications and architectural records
-│   ├── architecture.md        # Detailed packet pipeline, GCRA math, and map definitions
-│   ├── decisions.md           # Architecture Decision Records (ADRs: settled vs lab-validated)
-│   ├── known-issues.md        # Verifier constraints, single NIC hardware caveats, and limitations
-│   └── setup.md               # Lab hardware inventory, Ubuntu 24.04 specs, and tuning guide
-├── scripts/                   # Testbed automation and experiment orchestration scripts
-│   ├── setup_env.sh           # Automated namespace ('gen' & 'srv') and veth pair setup
-│   ├── teardown_env.sh        # Clean removal of namespaces and virtual links
-│   ├── status_env.sh          # Diagnostics and link inspection script
-│   ├── collect.sh             # Telemetry collection orchestrator across test window
-│   ├── collect_metrics.py     # Multi-layer stats engine (CPU softirq, NIC, SNMP, XDP)
-│   └── run_b0_test.sh         # End-to-end Baseline B0 validation runner
-├── baselines/                 # Comparative benchmark firewall and filter definitions
-│   └── none.sh                # Baseline B0 (No filter: detaches XDP, flushes nftables)
-├── traffic/                   # Traffic generation harnesses, legitimate client, and guards
-│   ├── guard.sh               # Non-bypassable boundary check (target <= 10.99.0.0/24, src <= 198.18/15)
-│   ├── guard.py               # Python module & CLI for traffic generator safety enforcement
-│   ├── legit_client.py        # Open-loop client (100 QPS, dedicated IP, p50/p95 latency)
-│   └── run_legit.sh           # Runner wrapper for legitimate client in 'gen' netns
-├── dns/                       # Authoritative DNS server configurations and test zones
-│   ├── nsd.conf               # Production NSD daemon configuration (RRL off, core-pinned)
-│   ├── zones/                 # Authoritative zone definitions (lab.test.zone)
-│   ├── start_dns.sh           # Starts NSD or lightweight fallback in 'srv' namespace
-│   ├── stop_dns.sh            # Graceful shutdown of DNS daemons
-│   └── test_dns.sh            # DNS resolution verification tool
-└── .agents/                   # Operational agent skills
-    └── skills/
-        ├── debugging/         # eBPF verifier, e1000e driver, bpftool, and drop tracing skill
-        │   └── SKILL.md
-        ├── code-review/       # eBPF safety, verifier compliance, isolation guard review skill
-        │   └── SKILL.md
-        └── testing/           # Acceptance testing, physical lab setup, and matrix runner skill
-            └── SKILL.md
+kavach/
+├── xdp/                       # Person A: eBPF/XDP kernel program & controller
+│   ├── kavach_xdp.c           # Core BPF packet filter (bounded parser + GCRA)
+│   ├── gcra.h                 # Atomic CAS Generic Cell Rate Algorithm
+│   ├── kavach_ctl.py          # Loader, runtime config, telemetry, and watchdog
+│   ├── Makefile               # eBPF build targets (-mcpu=v3 and approximate)
+│   └── tests/                 # Unit tests (controller, parser, host-test)
+├── src/                       # Person B: Lab harness, traffic, baselines & metrics
+│   ├── AGENTS.md              # Project context, rules, and synchronization guidelines
+│   ├── README.md              # Project overview and quick start guide
+│   ├── docs/                  # Architecture specifications and ADRs
+│   │   ├── architecture.md    # Detailed packet pipeline and GCRA formulation
+│   │   ├── decisions.md       # Architecture Decision Records (ADRs 001 - 018)
+│   │   ├── known-issues.md    # Hardware caveats and limitations
+│   │   └── setup.md           # Lab hardware inventory and host tuning
+│   ├── scripts/               # Testbed automation and experiment orchestration
+│   │   ├── setup_env.sh       # Automated namespace ('gen' & 'srv') setup
+│   │   ├── teardown_env.sh    # Clean removal of namespaces and virtual links
+│   │   ├── status_env.sh      # Diagnostics and link inspection script
+│   │   ├── collect.sh         # Telemetry collection orchestrator
+│   │   ├── collect_metrics.py # Multi-layer stats engine (CPU, NIC, SNMP, XDP)
+│   │   └── run_b0_test.sh     # End-to-end Baseline B0 validation runner
+│   ├── baselines/             # Comparative benchmark firewall definitions
+│   │   └── none.sh            # Baseline B0 (No filter: detaches XDP, flushes nft)
+│   ├── traffic/               # Traffic generation harnesses & safety guards
+│   │   ├── guard.sh           # Non-bypassable boundary check (<= 10.99.0.0/24)
+│   │   ├── guard.py           # Python safety module and CLI
+│   │   ├── legit_client.py    # Open-loop client (100 QPS, dedicated IP)
+│   │   └── run_legit.sh       # Runner wrapper for legitimate client
+│   └── dns/                   # Authoritative DNS server configurations
+│       ├── nsd.conf           # Production NSD daemon configuration (RRL off)
+│       ├── zones/             # Authoritative zone definitions (lab.test.zone)
+│       ├── start_dns.sh       # Starts NSD or lightweight fallback in 'srv'
+│       ├── stop_dns.sh        # Graceful shutdown of DNS daemons
+│       └── test_dns.sh        # DNS resolution verification tool
+├── docs/person-a/             # Person A technical documentation & handoff contracts
+└── results/raw/               # Raw experimental telemetry artifacts
 ```
 
 ---
