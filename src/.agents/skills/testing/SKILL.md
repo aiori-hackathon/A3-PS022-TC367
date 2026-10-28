@@ -204,3 +204,28 @@ Each benchmark run follows a strict temporal sequence:
 - **B2:** `nftables` netdev ingress table.
 - **X:** Kavach XDP program (`xdpdrv` or `xdpgeneric`).
 
+---
+
+## 6. Phase B2 Execution and Acceptance Protocol
+
+### 6.1 Generator Ceiling Test
+```bash
+sudo ./src/traffic/test_ceiling.sh 5.0
+```
+
+### 6.2 Baseline Limits Verification
+```bash
+sudo python3 ./src/baselines/verify_baselines.py
+```
+
+### 6.3 12-Run Unattended Dry Run Matrix
+```bash
+sudo ./src/scripts/run_orchestrator.sh --dry-run
+```
+*Acceptance Criteria:*
+1. 12 runs (4 configs x 3 scenarios) finish unattended in network namespaces.
+2. 12 raw data directories populated in `results/raw/`.
+3. Execution order logged in `results/raw/run_order.json`.
+4. Statistical summary written to `results/analysis_summary.json` and `results/analysis_table.csv`.
+5. Publication-quality figure generated at `results/plots/kavach_dryrun_summary.png`.
+

@@ -48,9 +48,11 @@ kavach/
 ├── src/                       # Person B: Lab harness, traffic, baselines & metrics
 │   ├── AGENTS.md              # Project context, rules, and synchronization guidelines
 │   ├── README.md              # Project overview and quick start guide
+│   ├── params.yaml            # Shared parameters (calibration, limits, timings)
+│   ├── params.json            # Mirrored JSON parameter definitions
 │   ├── docs/                  # Architecture specifications and ADRs
 │   │   ├── architecture.md    # Detailed packet pipeline and GCRA formulation
-│   │   ├── decisions.md       # Architecture Decision Records (ADRs 001 - 018)
+│   │   ├── decisions.md       # Architecture Decision Records (ADRs 001 - 023)
 │   │   ├── known-issues.md    # Hardware caveats and limitations
 │   │   └── setup.md           # Lab hardware inventory and host tuning
 │   ├── scripts/               # Testbed automation and experiment orchestration
@@ -58,13 +60,23 @@ kavach/
 │   │   ├── teardown_env.sh    # Clean removal of namespaces and virtual links
 │   │   ├── status_env.sh      # Diagnostics and link inspection script
 │   │   ├── collect.sh         # Telemetry collection orchestrator
-│   │   ├── collect_metrics.py # Multi-layer stats engine (CPU, NIC, SNMP, XDP)
+│   │   ├── collect_metrics.py # Multi-layer stats engine (CPU, NIC, SNMP, XDP, nft)
+│   │   ├── orchestrator.py    # Orchestrator v1 (seeded random, run lifecycle)
+│   │   ├── run_orchestrator.sh# Shell wrapper for orchestrator
+│   │   ├── analyze.py         # Statistical analysis engine & plot generator
 │   │   └── run_b0_test.sh     # End-to-end Baseline B0 validation runner
 │   ├── baselines/             # Comparative benchmark firewall definitions
-│   │   └── none.sh            # Baseline B0 (No filter: detaches XDP, flushes nft)
+│   │   ├── none.sh            # Baseline B0 (No filter: detaches XDP, flushes nft)
+│   │   ├── b1_prerouting.sh   # Baseline B1 (nftables prerouting raw, no conntrack)
+│   │   ├── b2_netdev.sh       # Baseline B2 (nftables netdev ingress)
+│   │   └── verify_baselines.py# Measured limit verification across B1, B2, X
 │   ├── traffic/               # Traffic generation harnesses & safety guards
 │   │   ├── guard.sh           # Non-bypassable boundary check (<= 10.99.0.0/24)
 │   │   ├── guard.py           # Python safety module and CLI
+│   │   ├── kavach_gen.c       # High-speed C packet generator (S1, S2, S3, ceiling)
+│   │   ├── Makefile           # Build system for C generator
+│   │   ├── flood.py           # Unified Python CLI for flood scenarios
+│   │   ├── test_ceiling.sh    # Generator ceiling benchmark script
 │   │   ├── legit_client.py    # Open-loop client (100 QPS, dedicated IP)
 │   │   └── run_legit.sh       # Runner wrapper for legitimate client
 │   └── dns/                   # Authoritative DNS server configurations

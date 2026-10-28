@@ -1,0 +1,85 @@
+{
+  "calibration": {
+    "S_pps": 10000,
+    "levels": [
+      0.5,
+      1.0,
+      2.0
+    ]
+  },
+  "filter_limits": {
+    "src_rate": 500,
+    "src_burst": 20,
+    "glob_rate": 7000,
+    "glob_burst": 100
+  },
+  "legitimate": {
+    "qps": 100.0,
+    "client_ip": "10.99.0.1",
+    "server_ip": "10.99.0.2",
+    "server_port": 53,
+    "timeout": 1.5,
+    "domains": [
+      "www.lab.test",
+      "mail.lab.test",
+      "ns1.lab.test",
+      "lab.test"
+    ]
+  },
+  "scenarios": {
+    "S1": {
+      "name": "single_source",
+      "source_ip": "198.18.0.10"
+    },
+    "S2": {
+      "name": "distributed",
+      "source_subnet": "198.18.0.0/15",
+      "num_sources": 1000
+    },
+    "S3": {
+      "name": "pulsing",
+      "source_ip": "198.18.0.10",
+      "period_s": 5.0,
+      "duty_cycle": 0.2,
+      "multipliers": [
+        0.5,
+        1.0,
+        2.0
+      ]
+    }
+  },
+  "timings": {
+    "warmup_s": 10,
+    "window_s": 60,
+    "cooldown_s": 10,
+    "dry_run": {
+      "warmup_s": 2,
+      "window_s": 5,
+      "cooldown_s": 2
+    }
+  },
+  "network": {
+    "netns_gen": "gen",
+    "netns_srv": "srv",
+    "iface_gen": "vgen",
+    "iface_srv": "vsrv",
+    "target_ip": "10.99.0.2",
+    "target_port": 53
+  },
+  "orchestrator": {
+    "seed": 42,
+    "configs": [
+      "B0",
+      "B1",
+      "B2",
+      "X"
+    ],
+    "scenarios": [
+      "S1",
+      "S2",
+      "S3"
+    ],
+    "level": 1.0,
+    "reps": 1
+  }
+}

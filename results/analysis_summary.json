@@ -1,0 +1,908 @@
+{
+  "S1": {
+    "B0": {
+      "sample_count": 1,
+      "legit_success_rate": {
+        "median": 100.0,
+        "iqr": 0.0,
+        "q25": 100.0,
+        "q75": 100.0,
+        "min": 100.0,
+        "max": 100.0
+      },
+      "legit_p50": {
+        "median": 0.08,
+        "iqr": 0.0,
+        "q25": 0.08,
+        "q75": 0.08,
+        "min": 0.08,
+        "max": 0.08
+      },
+      "legit_p95": {
+        "median": 0.32,
+        "iqr": 0.0,
+        "q25": 0.32,
+        "q75": 0.32,
+        "min": 0.32,
+        "max": 0.32
+      },
+      "cpu_pinned_busy": {
+        "median": 10.09,
+        "iqr": 0.0,
+        "q25": 10.09,
+        "q75": 10.09,
+        "min": 10.09,
+        "max": 10.09
+      },
+      "cpu_pinned_softirq": {
+        "median": 0.44,
+        "iqr": 0.0,
+        "q25": 0.44,
+        "q75": 0.44,
+        "min": 0.44,
+        "max": 0.44
+      },
+      "drops_layer1_nic": {
+        "median": 0.0,
+        "iqr": 0.0,
+        "q25": 0.0,
+        "q75": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "drops_layer2_softnet": {
+        "median": 0.0,
+        "iqr": 0.0,
+        "q25": 0.0,
+        "q75": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "drops_layer3_filter": {
+        "median": 0.0,
+        "iqr": 0.0,
+        "q25": 0.0,
+        "q75": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "drops_layer4_socket": {
+        "median": 0.0,
+        "iqr": 0.0,
+        "q25": 0.0,
+        "q75": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      }
+    },
+    "B1": {
+      "sample_count": 1,
+      "legit_success_rate": {
+        "median": 100.0,
+        "iqr": 0.0,
+        "q25": 100.0,
+        "q75": 100.0,
+        "min": 100.0,
+        "max": 100.0
+      },
+      "legit_p50": {
+        "median": 0.09,
+        "iqr": 0.0,
+        "q25": 0.09,
+        "q75": 0.09,
+        "min": 0.09,
+        "max": 0.09
+      },
+      "legit_p95": {
+        "median": 0.33,
+        "iqr": 0.0,
+        "q25": 0.33,
+        "q75": 0.33,
+        "min": 0.33,
+        "max": 0.33
+      },
+      "cpu_pinned_busy": {
+        "median": 11.97,
+        "iqr": 0.0,
+        "q25": 11.97,
+        "q75": 11.97,
+        "min": 11.97,
+        "max": 11.97
+      },
+      "cpu_pinned_softirq": {
+        "median": 0.22,
+        "iqr": 0.0,
+        "q25": 0.22,
+        "q75": 0.22,
+        "min": 0.22,
+        "max": 0.22
+      },
+      "drops_layer1_nic": {
+        "median": 0.0,
+        "iqr": 0.0,
+        "q25": 0.0,
+        "q75": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "drops_layer2_softnet": {
+        "median": 0.0,
+        "iqr": 0.0,
+        "q25": 0.0,
+        "q75": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "drops_layer3_filter": {
+        "median": 47481.0,
+        "iqr": 0.0,
+        "q25": 47481.0,
+        "q75": 47481.0,
+        "min": 47481.0,
+        "max": 47481.0
+      },
+      "drops_layer4_socket": {
+        "median": 0.0,
+        "iqr": 0.0,
+        "q25": 0.0,
+        "q75": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      }
+    },
+    "B2": {
+      "sample_count": 1,
+      "legit_success_rate": {
+        "median": 100.0,
+        "iqr": 0.0,
+        "q25": 100.0,
+        "q75": 100.0,
+        "min": 100.0,
+        "max": 100.0
+      },
+      "legit_p50": {
+        "median": 0.08,
+        "iqr": 0.0,
+        "q25": 0.08,
+        "q75": 0.08,
+        "min": 0.08,
+        "max": 0.08
+      },
+      "legit_p95": {
+        "median": 0.26,
+        "iqr": 0.0,
+        "q25": 0.26,
+        "q75": 0.26,
+        "min": 0.26,
+        "max": 0.26
+      },
+      "cpu_pinned_busy": {
+        "median": 5.64,
+        "iqr": 0.0,
+        "q25": 5.64,
+        "q75": 5.64,
+        "min": 5.64,
+        "max": 5.64
+      },
+      "cpu_pinned_softirq": {
+        "median": 0.11,
+        "iqr": 0.0,
+        "q25": 0.11,
+        "q75": 0.11,
+        "min": 0.11,
+        "max": 0.11
+      },
+      "drops_layer1_nic": {
+        "median": 0.0,
+        "iqr": 0.0,
+        "q25": 0.0,
+        "q75": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "drops_layer2_softnet": {
+        "median": 0.0,
+        "iqr": 0.0,
+        "q25": 0.0,
+        "q75": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "drops_layer3_filter": {
+        "median": 47479.0,
+        "iqr": 0.0,
+        "q25": 47479.0,
+        "q75": 47479.0,
+        "min": 47479.0,
+        "max": 47479.0
+      },
+      "drops_layer4_socket": {
+        "median": 0.0,
+        "iqr": 0.0,
+        "q25": 0.0,
+        "q75": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      }
+    },
+    "X": {
+      "sample_count": 1,
+      "legit_success_rate": {
+        "median": 100.0,
+        "iqr": 0.0,
+        "q25": 100.0,
+        "q75": 100.0,
+        "min": 100.0,
+        "max": 100.0
+      },
+      "legit_p50": {
+        "median": 0.08,
+        "iqr": 0.0,
+        "q25": 0.08,
+        "q75": 0.08,
+        "min": 0.08,
+        "max": 0.08
+      },
+      "legit_p95": {
+        "median": 0.38,
+        "iqr": 0.0,
+        "q25": 0.38,
+        "q75": 0.38,
+        "min": 0.38,
+        "max": 0.38
+      },
+      "cpu_pinned_busy": {
+        "median": 9.88,
+        "iqr": 0.0,
+        "q25": 9.88,
+        "q75": 9.88,
+        "min": 9.88,
+        "max": 9.88
+      },
+      "cpu_pinned_softirq": {
+        "median": 0.22,
+        "iqr": 0.0,
+        "q25": 0.22,
+        "q75": 0.22,
+        "min": 0.22,
+        "max": 0.22
+      },
+      "drops_layer1_nic": {
+        "median": 0.0,
+        "iqr": 0.0,
+        "q25": 0.0,
+        "q75": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "drops_layer2_softnet": {
+        "median": 0.0,
+        "iqr": 0.0,
+        "q25": 0.0,
+        "q75": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "drops_layer3_filter": {
+        "median": 47481.0,
+        "iqr": 0.0,
+        "q25": 47481.0,
+        "q75": 47481.0,
+        "min": 47481.0,
+        "max": 47481.0
+      },
+      "drops_layer4_socket": {
+        "median": 0.0,
+        "iqr": 0.0,
+        "q25": 0.0,
+        "q75": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      }
+    }
+  },
+  "S2": {
+    "B0": {
+      "sample_count": 1,
+      "legit_success_rate": {
+        "median": 100.0,
+        "iqr": 0.0,
+        "q25": 100.0,
+        "q75": 100.0,
+        "min": 100.0,
+        "max": 100.0
+      },
+      "legit_p50": {
+        "median": 0.07,
+        "iqr": 0.0,
+        "q25": 0.07,
+        "q75": 0.07,
+        "min": 0.07,
+        "max": 0.07
+      },
+      "legit_p95": {
+        "median": 0.28,
+        "iqr": 0.0,
+        "q25": 0.28,
+        "q75": 0.28,
+        "min": 0.28,
+        "max": 0.28
+      },
+      "cpu_pinned_busy": {
+        "median": 11.89,
+        "iqr": 0.0,
+        "q25": 11.89,
+        "q75": 11.89,
+        "min": 11.89,
+        "max": 11.89
+      },
+      "cpu_pinned_softirq": {
+        "median": 0.44,
+        "iqr": 0.0,
+        "q25": 0.44,
+        "q75": 0.44,
+        "min": 0.44,
+        "max": 0.44
+      },
+      "drops_layer1_nic": {
+        "median": 0.0,
+        "iqr": 0.0,
+        "q25": 0.0,
+        "q75": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "drops_layer2_softnet": {
+        "median": 0.0,
+        "iqr": 0.0,
+        "q25": 0.0,
+        "q75": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "drops_layer3_filter": {
+        "median": 0.0,
+        "iqr": 0.0,
+        "q25": 0.0,
+        "q75": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "drops_layer4_socket": {
+        "median": 0.0,
+        "iqr": 0.0,
+        "q25": 0.0,
+        "q75": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      }
+    },
+    "B1": {
+      "sample_count": 1,
+      "legit_success_rate": {
+        "median": 36.71,
+        "iqr": 0.0,
+        "q25": 36.71,
+        "q75": 36.71,
+        "min": 36.71,
+        "max": 36.71
+      },
+      "legit_p50": {
+        "median": 0.1,
+        "iqr": 0.0,
+        "q25": 0.1,
+        "q75": 0.1,
+        "min": 0.1,
+        "max": 0.1
+      },
+      "legit_p95": {
+        "median": 0.38,
+        "iqr": 0.0,
+        "q25": 0.38,
+        "q75": 0.38,
+        "min": 0.38,
+        "max": 0.38
+      },
+      "cpu_pinned_busy": {
+        "median": 8.31,
+        "iqr": 0.0,
+        "q25": 8.31,
+        "q75": 8.31,
+        "min": 8.31,
+        "max": 8.31
+      },
+      "cpu_pinned_softirq": {
+        "median": 0.33,
+        "iqr": 0.0,
+        "q25": 0.33,
+        "q75": 0.33,
+        "min": 0.33,
+        "max": 0.33
+      },
+      "drops_layer1_nic": {
+        "median": 0.0,
+        "iqr": 0.0,
+        "q25": 0.0,
+        "q75": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "drops_layer2_softnet": {
+        "median": 0.0,
+        "iqr": 0.0,
+        "q25": 0.0,
+        "q75": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "drops_layer3_filter": {
+        "median": 15396.0,
+        "iqr": 0.0,
+        "q25": 15396.0,
+        "q75": 15396.0,
+        "min": 15396.0,
+        "max": 15396.0
+      },
+      "drops_layer4_socket": {
+        "median": 0.0,
+        "iqr": 0.0,
+        "q25": 0.0,
+        "q75": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      }
+    },
+    "B2": {
+      "sample_count": 1,
+      "legit_success_rate": {
+        "median": 32.57,
+        "iqr": 0.0,
+        "q25": 32.57,
+        "q75": 32.57,
+        "min": 32.57,
+        "max": 32.57
+      },
+      "legit_p50": {
+        "median": 0.13,
+        "iqr": 0.0,
+        "q25": 0.13,
+        "q75": 0.13,
+        "min": 0.13,
+        "max": 0.13
+      },
+      "legit_p95": {
+        "median": 0.64,
+        "iqr": 0.0,
+        "q25": 0.64,
+        "q75": 0.64,
+        "min": 0.64,
+        "max": 0.64
+      },
+      "cpu_pinned_busy": {
+        "median": 14.01,
+        "iqr": 0.0,
+        "q25": 14.01,
+        "q75": 14.01,
+        "min": 14.01,
+        "max": 14.01
+      },
+      "cpu_pinned_softirq": {
+        "median": 0.33,
+        "iqr": 0.0,
+        "q25": 0.33,
+        "q75": 0.33,
+        "min": 0.33,
+        "max": 0.33
+      },
+      "drops_layer1_nic": {
+        "median": 0.0,
+        "iqr": 0.0,
+        "q25": 0.0,
+        "q75": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "drops_layer2_softnet": {
+        "median": 0.0,
+        "iqr": 0.0,
+        "q25": 0.0,
+        "q75": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "drops_layer3_filter": {
+        "median": 15401.0,
+        "iqr": 0.0,
+        "q25": 15401.0,
+        "q75": 15401.0,
+        "min": 15401.0,
+        "max": 15401.0
+      },
+      "drops_layer4_socket": {
+        "median": 0.0,
+        "iqr": 0.0,
+        "q25": 0.0,
+        "q75": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      }
+    },
+    "X": {
+      "sample_count": 1,
+      "legit_success_rate": {
+        "median": 93.86,
+        "iqr": 0.0,
+        "q25": 93.86,
+        "q75": 93.86,
+        "min": 93.86,
+        "max": 93.86
+      },
+      "legit_p50": {
+        "median": 0.08,
+        "iqr": 0.0,
+        "q25": 0.08,
+        "q75": 0.08,
+        "min": 0.08,
+        "max": 0.08
+      },
+      "legit_p95": {
+        "median": 0.71,
+        "iqr": 0.0,
+        "q25": 0.71,
+        "q75": 0.71,
+        "min": 0.71,
+        "max": 0.71
+      },
+      "cpu_pinned_busy": {
+        "median": 13.94,
+        "iqr": 0.0,
+        "q25": 13.94,
+        "q75": 13.94,
+        "min": 13.94,
+        "max": 13.94
+      },
+      "cpu_pinned_softirq": {
+        "median": 0.44,
+        "iqr": 0.0,
+        "q25": 0.44,
+        "q75": 0.44,
+        "min": 0.44,
+        "max": 0.44
+      },
+      "drops_layer1_nic": {
+        "median": 0.0,
+        "iqr": 0.0,
+        "q25": 0.0,
+        "q75": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "drops_layer2_softnet": {
+        "median": 0.0,
+        "iqr": 0.0,
+        "q25": 0.0,
+        "q75": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "drops_layer3_filter": {
+        "median": 15401.0,
+        "iqr": 0.0,
+        "q25": 15401.0,
+        "q75": 15401.0,
+        "min": 15401.0,
+        "max": 15401.0
+      },
+      "drops_layer4_socket": {
+        "median": 0.0,
+        "iqr": 0.0,
+        "q25": 0.0,
+        "q75": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      }
+    }
+  },
+  "S3": {
+    "B0": {
+      "sample_count": 1,
+      "legit_success_rate": {
+        "median": 100.0,
+        "iqr": 0.0,
+        "q25": 100.0,
+        "q75": 100.0,
+        "min": 100.0,
+        "max": 100.0
+      },
+      "legit_p50": {
+        "median": 0.1,
+        "iqr": 0.0,
+        "q25": 0.1,
+        "q75": 0.1,
+        "min": 0.1,
+        "max": 0.1
+      },
+      "legit_p95": {
+        "median": 0.56,
+        "iqr": 0.0,
+        "q25": 0.56,
+        "q75": 0.56,
+        "min": 0.56,
+        "max": 0.56
+      },
+      "cpu_pinned_busy": {
+        "median": 9.44,
+        "iqr": 0.0,
+        "q25": 9.44,
+        "q75": 9.44,
+        "min": 9.44,
+        "max": 9.44
+      },
+      "cpu_pinned_softirq": {
+        "median": 0.11,
+        "iqr": 0.0,
+        "q25": 0.11,
+        "q75": 0.11,
+        "min": 0.11,
+        "max": 0.11
+      },
+      "drops_layer1_nic": {
+        "median": 0.0,
+        "iqr": 0.0,
+        "q25": 0.0,
+        "q75": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "drops_layer2_softnet": {
+        "median": 0.0,
+        "iqr": 0.0,
+        "q25": 0.0,
+        "q75": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "drops_layer3_filter": {
+        "median": 0.0,
+        "iqr": 0.0,
+        "q25": 0.0,
+        "q75": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "drops_layer4_socket": {
+        "median": 0.0,
+        "iqr": 0.0,
+        "q25": 0.0,
+        "q75": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      }
+    },
+    "B1": {
+      "sample_count": 1,
+      "legit_success_rate": {
+        "median": 100.0,
+        "iqr": 0.0,
+        "q25": 100.0,
+        "q75": 100.0,
+        "min": 100.0,
+        "max": 100.0
+      },
+      "legit_p50": {
+        "median": 0.15,
+        "iqr": 0.0,
+        "q25": 0.15,
+        "q75": 0.15,
+        "min": 0.15,
+        "max": 0.15
+      },
+      "legit_p95": {
+        "median": 0.42,
+        "iqr": 0.0,
+        "q25": 0.42,
+        "q75": 0.42,
+        "min": 0.42,
+        "max": 0.42
+      },
+      "cpu_pinned_busy": {
+        "median": 8.41,
+        "iqr": 0.0,
+        "q25": 8.41,
+        "q75": 8.41,
+        "min": 8.41,
+        "max": 8.41
+      },
+      "cpu_pinned_softirq": {
+        "median": 0.22,
+        "iqr": 0.0,
+        "q25": 0.22,
+        "q75": 0.22,
+        "min": 0.22,
+        "max": 0.22
+      },
+      "drops_layer1_nic": {
+        "median": 0.0,
+        "iqr": 0.0,
+        "q25": 0.0,
+        "q75": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "drops_layer2_softnet": {
+        "median": 0.0,
+        "iqr": 0.0,
+        "q25": 0.0,
+        "q75": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "drops_layer3_filter": {
+        "median": 0.0,
+        "iqr": 0.0,
+        "q25": 0.0,
+        "q75": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "drops_layer4_socket": {
+        "median": 0.0,
+        "iqr": 0.0,
+        "q25": 0.0,
+        "q75": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      }
+    },
+    "B2": {
+      "sample_count": 1,
+      "legit_success_rate": {
+        "median": 100.0,
+        "iqr": 0.0,
+        "q25": 100.0,
+        "q75": 100.0,
+        "min": 100.0,
+        "max": 100.0
+      },
+      "legit_p50": {
+        "median": 0.16,
+        "iqr": 0.0,
+        "q25": 0.16,
+        "q75": 0.16,
+        "min": 0.16,
+        "max": 0.16
+      },
+      "legit_p95": {
+        "median": 0.37,
+        "iqr": 0.0,
+        "q25": 0.37,
+        "q75": 0.37,
+        "min": 0.37,
+        "max": 0.37
+      },
+      "cpu_pinned_busy": {
+        "median": 7.92,
+        "iqr": 0.0,
+        "q25": 7.92,
+        "q75": 7.92,
+        "min": 7.92,
+        "max": 7.92
+      },
+      "cpu_pinned_softirq": {
+        "median": 0.11,
+        "iqr": 0.0,
+        "q25": 0.11,
+        "q75": 0.11,
+        "min": 0.11,
+        "max": 0.11
+      },
+      "drops_layer1_nic": {
+        "median": 0.0,
+        "iqr": 0.0,
+        "q25": 0.0,
+        "q75": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "drops_layer2_softnet": {
+        "median": 0.0,
+        "iqr": 0.0,
+        "q25": 0.0,
+        "q75": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "drops_layer3_filter": {
+        "median": 0.0,
+        "iqr": 0.0,
+        "q25": 0.0,
+        "q75": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "drops_layer4_socket": {
+        "median": 0.0,
+        "iqr": 0.0,
+        "q25": 0.0,
+        "q75": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      }
+    },
+    "X": {
+      "sample_count": 1,
+      "legit_success_rate": {
+        "median": 100.0,
+        "iqr": 0.0,
+        "q25": 100.0,
+        "q75": 100.0,
+        "min": 100.0,
+        "max": 100.0
+      },
+      "legit_p50": {
+        "median": 0.12,
+        "iqr": 0.0,
+        "q25": 0.12,
+        "q75": 0.12,
+        "min": 0.12,
+        "max": 0.12
+      },
+      "legit_p95": {
+        "median": 0.64,
+        "iqr": 0.0,
+        "q25": 0.64,
+        "q75": 0.64,
+        "min": 0.64,
+        "max": 0.64
+      },
+      "cpu_pinned_busy": {
+        "median": 11.74,
+        "iqr": 0.0,
+        "q25": 11.74,
+        "q75": 11.74,
+        "min": 11.74,
+        "max": 11.74
+      },
+      "cpu_pinned_softirq": {
+        "median": 0.11,
+        "iqr": 0.0,
+        "q25": 0.11,
+        "q75": 0.11,
+        "min": 0.11,
+        "max": 0.11
+      },
+      "drops_layer1_nic": {
+        "median": 0.0,
+        "iqr": 0.0,
+        "q25": 0.0,
+        "q75": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "drops_layer2_softnet": {
+        "median": 0.0,
+        "iqr": 0.0,
+        "q25": 0.0,
+        "q75": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "drops_layer3_filter": {
+        "median": 0.0,
+        "iqr": 0.0,
+        "q25": 0.0,
+        "q75": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "drops_layer4_socket": {
+        "median": 0.0,
+        "iqr": 0.0,
+        "q25": 0.0,
+        "q75": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      }
+    }
+  }
+}

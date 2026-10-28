@@ -56,6 +56,14 @@
 - **Impact:** Benchmarks collected over `veth` interfaces do not reflect true physical NIC driver performance or hardware ring buffer constraints.
 - **Mitigation:** All namespace measurements are classified strictly as **functional validation**, not definitive performance benchmarks.
 
+### BPF Map Pinning in Network Namespaces (`nsenter` vs `ip netns exec`)
+- **Issue:** Standard `ip netns exec <ns>` unshares the mount namespace and mounts a private sysfs on `/sys`, which masks the host's `/sys/fs/bpf` mount and prevents access to pinned BPF maps.
+- **Solution:** Invoke BPF control commands using `nsenter --net=/run/netns/<ns>`, switching strictly the network namespace while retaining access to the host `/sys/fs/bpf` hierarchy.
+
+### bpftool JSON Option Syntax
+- **Issue:** Passing `-j` after the subcommand (e.g., `bpftool map dump pinned <path> -j`) fails with return code 255 on newer bpftool builds.
+- **Solution:** Place `-j` immediately before the subcommand (e.g., `bpftool -j map dump pinned <path>`).
+
 ---
 
 ## 4. Protocol & Filtering Scope Limitations

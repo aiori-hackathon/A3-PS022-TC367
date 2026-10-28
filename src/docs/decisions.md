@@ -164,3 +164,38 @@ This document logs architectural and design decisions made throughout the lifecy
   4. **Watchdog Protocol:** UUID generation tokens with atomic conditional detachment via `libbpf` `bpf_xdp_detach`.
   5. **Directory Structure:** Root-level `xdp/` and `docs/person-a/` coexisting harmoniously with `src/`.
 - **Rationale:** Guarantees verifier safety, rigorous mathematical drop-counter accounting, and clean operational decoupling between Person A's kernel filter and Person B's measurement harness.
+
+### ADR-019: Synthetic Traffic Generators (S1, S2, S3) Architecture & Custom C Implementation
+- **Status:** Accepted & Implemented (28 Oct 2026)
+- **Context:** Third-party packet generators like `trafgen` or `pktgen` have platform discrepancies, missing dependencies across Arch and Ubuntu, and lack built-in programmatically non-bypassable destination and source IP guardrails.
+- **Decision:** Implement a dedicated, lightweight, high-performance C packet generator (`src/traffic/kavach_gen.c`) with `IP_HDRINCL` raw sockets, supported by a Python CLI (`src/traffic/flood.py`):
+  1. **Strict Safety Asserts:** Programmatic verification in C that exits with code 100 if destination is outside `10.99.0.0/24`, source is outside `198.18.0.0/15`, or `ip_forward != 0`.
+  2. **Scenario S1:** Single-source constant-rate flood paced via monotonic high-resolution timers.
+  3. **Scenario S2:** Distributed flood across 1,000 randomized source IPs drawn strictly from `198.18.0.0/15`.
+  4. **Scenario S3:** Pulsing bursts of 0.5x, 1x, and 2x burst tolerance with configurable period $P \le 10$ s.
+  5. **Ceiling Mode:** High-speed transmission benchmark to measure generator host maximum capacity.
+- **Rationale:** Maximizes packet transmission rates with zero third-party dependencies while enforcing strict RFC 2544 and lab boundary safety.
+
+### ADR-020: nftables Baselines B1 (Prerouting Raw) and B2 (Netdev Ingress) Parameterized Formulation
+- **Status:** Accepted & Implemented (28 Oct 2026)
+- **Context:** To benchmark XDP fairly against netfilter, two nftables baselines are required with identical rate/burst limits and identical evaluation order (per-source dynamic set first, global limit second).
+- **Decision:** Implement `src/baselines/b1_prerouting.sh` (table `ip kavach_b1` at hook `prerouting` priority `raw` with `notrack` to bypass conntrack) and `src/baselines/b2_netdev.sh` (table `netdev kavach_b2` at hook `ingress device <iface>` priority -500). Verify effective limits using `src/baselines/verify_baselines.py`.
+- **Rationale:** Provides strict parity between XDP and netfilter while measuring the performance difference across the driver layer, netdev hook, and prerouting hook.
+
+### ADR-021: Shared Configuration & Parameter Specification (`params.yaml` / `params.json`)
+- **Status:** Accepted & Implemented (28 Oct 2026)
+- **Context:** Limiter parameters, saturation thresholds ($S$), client QPS, and measurement timings must be synchronized between the loader, traffic generators, orchestrator, and baselines without hardcoded magic numbers.
+- **Decision:** Standardize on `src/params.yaml` (mirrored to `src/params.json`) defining `calibration`, `filter_limits`, `legitimate`, `scenarios`, `timings`, and `network`.
+- **Rationale:** Enables flexible reconfiguration, dry-run profiling, and ensures identical parameters are passed to both XDP and nftables.
+
+### ADR-022: Experiment Orchestrator v1 Architecture & Seeded Random Execution Protocol
+- **Status:** Accepted & Implemented (28 Oct 2026)
+- **Context:** Benchmark matrices require reproducible execution, clean state reset, and protection against time-dependent confounding factors (systemic drift, cache warming).
+- **Decision:** Implement `src/scripts/orchestrator.py` and wrapper `src/scripts/run_orchestrator.sh` executing runs in a seeded pseudo-random order (`run_order.json`). Each run executes: Reset -> Configure -> Warm-up -> Measurement Window -> Cool-down -> Save, isolating artifacts to `results/raw/<scenario>_<config>_<level>_<rep>/`.
+- **Rationale:** Prevents systematic bias and guarantees repeatable experimental rigor.
+
+### ADR-023: Telemetry Analysis Engine (`analyze.py v0`) & Multi-Layer Drop Visualization
+- **Status:** Accepted & Implemented (28 Oct 2026)
+- **Context:** Post-processing raw telemetry across dozens of runs requires robust statistical aggregation and multi-layer drop decomposition.
+- **Decision:** Implement `src/scripts/analyze.py` to calculate Median and IQR for legitimate query success %, latency percentiles ($p50, p95, p99$), CPU busy % and softirq %, and multi-tier Drops by Layer (Layer 1 NIC -> Layer 2 Softnet -> Layer 3 Filter -> Layer 4 Socket Buffer). Generates consolidated JSON, CSV, and publication-ready multi-panel figure `results/plots/kavach_dryrun_summary.png` using matplotlib.
+- **Rationale:** Automates objective comparison across all four configurations without manual spreadsheet manipulation.

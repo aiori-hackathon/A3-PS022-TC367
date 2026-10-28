@@ -107,6 +107,10 @@ ip -n "$NS_SRV" route add 198.18.0.0/15 via "$IP_GEN" dev "$IF_SRV"
 # 6.4 Generator containment: disable IP forwarding so spoofed replies never escape
 ip netns exec "$NS_GEN" sysctl -qw net.ipv4.ip_forward=0
 
+# 6.5 Mount bpffs in server namespace for XDP map pinning
+ip netns exec "$NS_SRV" mkdir -p /sys/fs/bpf
+ip netns exec "$NS_SRV" mount -t bpf bpf /sys/fs/bpf 2>/dev/null || true
+
 # 7. Disable offloads on veth interfaces for accurate packet processing in XDP
 if command -v ethtool >/dev/null 2>&1; then
     log_info "Disabling hardware checksum / segmentation offloads on veth interfaces..."

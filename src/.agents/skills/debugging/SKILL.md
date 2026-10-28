@@ -72,6 +72,9 @@ sudo bpftool map dump pinned /sys/fs/bpf/kavach/maps/map_src_tat
 sudo bpftool map dump pinned /sys/fs/bpf/kavach/maps/map_stats
 ```
 
+> [!TIP]
+> When inspecting pinned maps on an interface located within a network namespace, run bpftool directly from the host mount namespace, or use `nsenter --net=/run/netns/<ns>` to avoid unsharing `/sys` and masking `/sys/fs/bpf`. Note also that the `-j` flag in bpftool must precede the subcommand (e.g. `bpftool -j map dump pinned ...`).
+
 ---
 
 ## 4. Troubleshooting Packet Drops and Network Anomalies

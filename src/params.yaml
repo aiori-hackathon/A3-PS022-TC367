@@ -1,0 +1,85 @@
+# ==============================================================================
+# Kavach PS-022: Shared Experiment Parameters & Calibration Profile
+# Submission ID: A3-PS022-TC367
+#
+# Read by Orchestrator v1, Traffic Generators (S1/S2/S3), and Baseline Scripts.
+# ==============================================================================
+
+calibration:
+  # Saturation rate S (pps) determined during unflooded baseline calibration
+  # Default value for network namespace testing; calibrated on physical lab hosts
+  S_pps: 10000
+  levels:
+    - 0.5   # 0.5x S (5,000 pps)
+    - 1.0   # 1.0x S (10,000 pps)
+    - 2.0   # 2.0x S (20,000 pps)
+
+filter_limits:
+  # Per-source rate and burst: 5x-10x the legitimate client rate (100 QPS)
+  src_rate: 500          # Packets per second
+  src_burst: 20          # Instantaneous burst tolerance (packets)
+  # Global rate and burst: ~70% of server saturation threshold S
+  glob_rate: 7000        # Packets per second
+  glob_burst: 100        # Instantaneous burst tolerance (packets)
+
+legitimate:
+  qps: 100.0             # Open-loop query rate
+  client_ip: "10.99.0.1" # Dedicated source IP
+  server_ip: "10.99.0.2" # Target server IP
+  server_port: 53
+  timeout: 1.5           # Hard timeout in seconds (no retries)
+  domains:
+    - "www.lab.test"
+    - "mail.lab.test"
+    - "ns1.lab.test"
+    - "lab.test"
+
+scenarios:
+  S1:
+    name: "single_source"
+    source_ip: "198.18.0.10"
+  S2:
+    name: "distributed"
+    source_subnet: "198.18.0.0/15"
+    num_sources: 1000
+  S3:
+    name: "pulsing"
+    source_ip: "198.18.0.10"
+    period_s: 5.0        # Pulse period (<= 10s, at least 5 cycles in 60s window)
+    duty_cycle: 0.2      # 1s active pulse, 4s idle refill
+    multipliers:
+      - 0.5              # 0.5x burst (10 packets)
+      - 1.0              # 1.0x burst (20 packets)
+      - 2.0              # 2.0x burst (40 packets)
+
+timings:
+  warmup_s: 10           # Legitimate client active, no flood
+  window_s: 60           # Measurement window (legitimate + flood)
+  cooldown_s: 10         # Stop flood, drain queues, stop collectors
+  dry_run:
+    warmup_s: 2
+    window_s: 5
+    cooldown_s: 2
+
+network:
+  netns_gen: "gen"
+  netns_srv: "srv"
+  iface_gen: "vgen"
+  iface_srv: "vsrv"
+  target_ip: "10.99.0.2"
+  target_port: 53
+
+orchestrator:
+  seed: 42               # Seed for deterministic pseudo-random run order
+  configs:
+    - "B0"               # No filter
+    - "B1"               # nftables prerouting raw (no conntrack)
+    - "B2"               # nftables netdev ingress
+    - "X"                # Kavach XDP filter
+  scenarios:
+    - "S1"
+    - "S2"
+    - "S3"
+  level: 1.0
+  reps: 1
+
