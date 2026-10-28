@@ -1,13 +1,16 @@
 # ==============================================================================
-# Kavach PS-022: Git Ignore Configuration
+# Kavach PS-022: Git Ignore Configuration (Unified)
 # ==============================================================================
 
-# Compiled eBPF bytecode and object files
+# Compiled eBPF bytecode, object files, and binaries
 *.o
 *.bpf.o
 *.so
 *.ll
 *.s
+*.exe
+*.dll
+/xdp/tests/gcra_host
 
 # Python bytecode, virtual environments, and caches
 __pycache__/
@@ -30,10 +33,12 @@ env/
 *.pcapng
 
 # Large raw benchmark data captures (preserve directory with .gitkeep)
-# Uncomment or exclude specific bulky test runs to prevent repo bloat:
 results/raw/*
 !results/raw/.gitkeep
 !results/raw/namespaces_B0_validation/
+
+# Evidence local folders
+docs/person-a/evidence/local-*/
 
 # OS and Editor specific files
 .DS_Store
@@ -43,4 +48,3 @@ Thumbs.db
 *~
 .vscode/
 .idea/
-
