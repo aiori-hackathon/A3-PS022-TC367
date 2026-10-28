@@ -11,6 +11,7 @@
 *.exe
 *.dll
 /xdp/tests/gcra_host
+/src/traffic/kavach_gen
 
 # Python bytecode, virtual environments, and caches
 __pycache__/
