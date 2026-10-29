@@ -74,6 +74,8 @@ When reviewing `xdp/dns_ratelimit.bpf.c`:
 
 - [ ] **No Hardcoded Parameters:**
   Are network interfaces, rates, burst thresholds, run durations, and file paths passed via command-line arguments or loaded from `params.yaml`?
+- [ ] **No Hardcoded Tool / Kernel Paths:**
+  Do scripts and controller CLIs avoid hardcoding kernel-versioned paths (e.g. `/usr/lib/linux-tools/6.8.0-147-generic/bpftool`)? Are binaries discovered dynamically via `PATH`, `/usr/lib/linux-tools/$(uname -r)/`, or environment overrides (`BPFTOOL`)?
 - [ ] **Clean State Reset:**
   Does the benchmark runner cleanly flush maps, reset interfaces, and restart services between test iterations?
 - [ ] **Telemetry Header Adherence:**

@@ -43,3 +43,4 @@
 
 Person B is completely unblocked and ready to execute the main benchmark matrix on the lab hardware.
 See `docs/person-b/B4_READINESS.md` for dependency audit and `docs/person-b/B4_RUNBOOK.md` for the exact operational steps.
+

@@ -75,6 +75,17 @@ sudo bpftool map dump pinned /sys/fs/bpf/kavach/maps/map_stats
 > [!TIP]
 > When inspecting pinned maps on an interface located within a network namespace, run bpftool directly from the host mount namespace, or use `nsenter --net=/run/netns/<ns>` to avoid unsharing `/sys` and masking `/sys/fs/bpf`. Note also that the `-j` flag in bpftool must precede the subcommand (e.g. `bpftool -j map dump pinned ...`).
 
+### 3.1 `bpftool` Binary Path Resolution Failure (`FileNotFoundError`)
+- **Symptom:** `python3 xdp/kavach_ctl.py` crashes on startup with:
+  `FileNotFoundError: [Errno 2] No such file or directory: '/usr/lib/linux-tools/6.8.0-147-generic/bpftool'`
+- **Root Cause:** A hardcoded kernel tool path was checked into the CLI, which fails whenever the host machine runs a different kernel release (such as Ubuntu 24.04 OEM kernel `6.14.0-1020-oem`).
+- **Remedy:** Ensure `find_bpftool()` is used in `kavach_ctl.py`. If debugging on a non-standard host or minimal container, provide an explicit binary path via environment variable:
+  ```bash
+  export BPFTOOL=$(which bpftool)
+  # Or locate kernel tools:
+  export BPFTOOL=/usr/lib/linux-tools/$(uname -r)/bpftool
+  ```
+
 ---
 
 ## 4. Troubleshooting Packet Drops and Network Anomalies

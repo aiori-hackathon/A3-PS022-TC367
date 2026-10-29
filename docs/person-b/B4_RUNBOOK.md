@@ -120,3 +120,4 @@ cp -r results/plots/ /media/aiori-2/<PENDRIVE>/kavach_b4_results/
 sync
 ```
 Eject pendrive and ingest results into git repository!
+

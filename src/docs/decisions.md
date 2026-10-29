@@ -245,3 +245,15 @@ This document logs architectural and design decisions made throughout the lifecy
   - **X (Kavach XDP):** 100.00% legitimate success; median latency **0.409 ms** (fastest of all configurations, ~15% latency advantage over netfilter; p95: 1.434 ms).
 - **Attachment Mode Finding:** On Ubuntu 24.04.4 LTS with kernel `6.14.0-1020-oem`, the Intel `e1000e` driver on `eno1` attached in generic mode (`xdpgeneric`). The fallback logic in `target_daemon.py` and `kavach_ctl.py` handled this transparently.
 - **Decision:** Proceed with generic XDP (`xdpgeneric`) for the primary physical testbed matrix as specified in the problem statement (PS-022 Item 6: *"Use an XDP-capable kernel/NIC, or document generic-mode setup"*). Explicitly label all results as generic XDP in the report.
+
+### ADR-028: Dynamic `bpftool` Discovery & Elimination of Hardcoded Kernel Paths
+- **Status:** Accepted & Implemented (29 Oct 2026)
+- **Context:** The initial controller CLI (`xdp/kavach_ctl.py`) hardcoded the absolute binary path `/usr/lib/linux-tools/6.8.0-147-generic/bpftool` for loading programs and updating maps. When moving to the physical lab workstations (running Ubuntu 24.04 with OEM kernel `6.14.0-1020-oem`) or developer environments with different kernel releases, invoking `kavach_ctl.py` immediately crashed with `FileNotFoundError: [Errno 2] No such file or directory`.
+- **Decision:** Remove all hardcoded kernel tool paths from the CLI control plane. Implement a tiered dynamic resolution function `find_bpftool()` in `xdp/kavach_ctl.py`:
+  1. Check user override via `BPFTOOL` environment variable (`if "BPFTOOL" in os.environ:`).
+  2. Check current kernel's tool directory: `/usr/lib/linux-tools/$(uname -r)/bpftool`.
+  3. Glob and select the latest installed kernel tool: `/usr/lib/linux-tools/*/bpftool`.
+  4. Search system `$PATH` via `shutil.which("bpftool")`.
+  5. Fallback to `"bpftool"` in the active environment.
+- **Rationale:** Ensures portable execution across physical workstations, local development machines, and test VMs without requiring code modifications or kernel-specific coupling.
+- **Rule for Agents:** Scripts, test runners, and loaders must never hardcode kernel release strings or absolute paths to distro-specific tool packages.

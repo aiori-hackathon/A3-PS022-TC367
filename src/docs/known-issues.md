@@ -43,6 +43,13 @@
 - **Advantages:** Full BTF support (`/sys/kernel/btf/vmlinux`), reliable 64-bit BPF atomics, modern libbpf support.
 - **Cross-Environment Warning:** If developing or testing on older distributions (such as Ubuntu 22.04 with kernel 5.15), avoid kernel 6.x-specific kfuncs or newer libbpf APIs that might break if executed on older kernels.
 
+### Hardcoded `bpftool` Binary Path in Controller CLI (`kavach_ctl.py`)
+- **Observation:** The controller CLI originally hardcoded the absolute binary path `/usr/lib/linux-tools/6.8.0-147-generic/bpftool` for loading programs, querying attachments, and updating maps.
+- **Impact:** On the physical lab workstations (Ubuntu 24.04 with OEM kernel `6.14.0-1020-oem`) or developer environments with different kernel builds, invoking `python3 xdp/kavach_ctl.py` crashed immediately with:
+  `FileNotFoundError: [Errno 2] No such file or directory: '/usr/lib/linux-tools/6.8.0-147-generic/bpftool'`
+- **Fix:** Implemented dynamic discovery in `find_bpftool()` within `xdp/kavach_ctl.py`. It inspects `BPFTOOL` environment variable, matches `/usr/lib/linux-tools/$(uname -r)/bpftool`, globs other installed kernel tools, checks `shutil.which("bpftool")`, and falls back to `"bpftool"`.
+- **Takeaway:** Never hardcode distro- or kernel-release-specific directory paths into shared agent scripts or Python utilities.
+
 ### Missing Packages in Base Image
 - **Status:** Neither PC currently has `clang`, `nsd`, `dnsperf`, or `trafgen` (`netsniff-ng`).
 - **Action:** Must be installed via `apt` while campus internet access is available on `eno1` before cable reconfiguration.

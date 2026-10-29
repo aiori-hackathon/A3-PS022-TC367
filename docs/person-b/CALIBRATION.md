@@ -81,3 +81,4 @@ Each configuration was evaluated under Scenario S1 flood at the $1.0\times S$ le
   The per-source GCRA limiter successfully isolated the single flood source (`198.18.0.10`), dropping flood packets while allowing the legitimate client (`10.99.0.1`) complete throughput. Scenario S2 (distributed) during Phase B4 will test LRU cache capacity.
 - **Hypothesis H4 (Native Driver Speedup): Untestable on Physical Hardware.**  
   Because the Linux `6.14.0-1020-oem` `e1000e` driver rejects native XDP (`xdpdrv`), H4 cannot be empirically verified on this hardware. This finding is thoroughly documented per PS-022 Item 6.
+

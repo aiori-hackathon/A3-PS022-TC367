@@ -15,7 +15,7 @@ Per `src/AGENTS.md` Section 13 (Roles and plans), Person A was responsible for P
 |---|---|---|---|
 | **eBPF Kernel Program** | `xdp/kavach_xdp.c`, `kavach_xdp.o` | Compiled with `-mcpu=v3`, verified against kernel verifier. | **YES (Frozen)** |
 | **Dual-Tier GCRA Algorithm** | `xdp/gcra.h` | 64-bit atomic integer CAS limiter, verified under S1 flood. | **YES (Frozen)** |
-| **User-Space Controller CLI** | `xdp/kavach_ctl.py` | Implements `load`, `attach`, `config`, `stats`, `detach`, and watchdog. | **YES (Frozen)** |
+| **User-Space Controller CLI** | `xdp/kavach_ctl.py` | Implements `load`, `attach`, `config`, `stats`, `detach`, and watchdog (with dynamic `bpftool` discovery for kernel 6.14). | **YES (Frozen)** |
 | **Config ABI & Pinned Maps** | 40-byte binary struct | Tested via `kavach_ctl.py config` reading `src/params.yaml`. | **YES (Frozen)** |
 | **Telemetry Stats Contract** | 14-counter CSV dump | Tested in Phase B3 smoke run, outputs complete 14-column CSV. | **YES (Frozen)** |
 | **Generic XDP Support** | Fallback attach mode | Successfully attached to physical Intel `eno1` in `xdpgeneric` mode. | **YES (Frozen)** |
@@ -57,3 +57,4 @@ While Person B executes the matrix runs in the offline lab, Person A is schedule
 - Assisting in counter verification from raw logs once data is extracted.
 
 **Summary:** Person B can proceed directly to running Phase B4 without waiting for any new code, configuration, or input from Person A.
+
