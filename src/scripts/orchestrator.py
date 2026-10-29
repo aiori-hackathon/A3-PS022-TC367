@@ -55,12 +55,18 @@ def test_target_daemon(host: str, port: int) -> bool:
     """Checks whether target_daemon.py is listening on the target host."""
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.settimeout(1.0)
+        s.settimeout(2.0)
         s.connect((host, port))
         s.sendall(json.dumps({"cmd": "ping"}).encode("utf-8"))
-        data = s.recv(1024).decode("utf-8")
+        s.shutdown(socket.SHUT_WR)
+        chunks = []
+        while True:
+            chunk = s.recv(1024)
+            if not chunk:
+                break
+            chunks.append(chunk)
         s.close()
-        resp = json.loads(data)
+        resp = json.loads(b"".join(chunks).decode("utf-8"))
         return resp.get("status") == "ok"
     except Exception:
         return False
@@ -69,12 +75,40 @@ def test_target_daemon(host: str, port: int) -> bool:
 def send_daemon_cmd(host: str, port: int, payload: Dict[str, Any]) -> Dict[str, Any]:
     """Sends JSON command to target daemon on target host and returns response."""
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.settimeout(20.0)
+    s.settimeout(25.0)
     s.connect((host, port))
     s.sendall(json.dumps(payload).encode("utf-8"))
-    data = s.recv(4096).decode("utf-8")
+    s.shutdown(socket.SHUT_WR)
+    chunks = []
+    while True:
+        chunk = s.recv(4096)
+        if not chunk:
+            break
+        chunks.append(chunk)
     s.close()
+    data = b"".join(chunks).decode("utf-8")
     return json.loads(data)
+
+
+def parse_flexible_list(val_or_list: Optional[Any]) -> Optional[List[str]]:
+    """Flexibly parses a list of strings from CLI, handling both space and comma separation."""
+    if not val_or_list:
+        return None
+    items = []
+    if isinstance(val_or_list, list):
+        for entry in val_or_list:
+            items.extend([x.strip().upper() for x in entry.replace(",", " ").split() if x.strip()])
+    elif isinstance(val_or_list, str):
+        items.extend([x.strip().upper() for x in val_or_list.replace(",", " ").split() if x.strip()])
+    return items or None
+
+
+def parse_flexible_levels(val_or_list: Optional[Any]) -> Optional[List[float]]:
+    """Flexibly parses float levels from CLI."""
+    str_list = parse_flexible_list(val_or_list)
+    if not str_list:
+        return None
+    return [float(x) for x in str_list]
 
 
 def load_params(params_path: Path) -> Dict[str, Any]:
@@ -412,7 +446,17 @@ class Orchestrator:
             p_collect.wait()
         if self.use_target_daemon:
             try:
-                send_daemon_cmd(self.target_ip, self.daemon_port, {"cmd": "stop"})
+                resp_stop = send_daemon_cmd(self.target_ip, self.daemon_port, {"cmd": "stop"})
+                summary = resp_stop.get("metrics_summary")
+                if summary:
+                    with open(run_dir / "metrics_summary.json", "w", encoding="utf-8") as f_sum:
+                        json.dump(summary, f_sum, indent=2)
+                    print(f"  [Daemon Sync] Successfully synchronized metrics_summary.json to {run_name}")
+                telemetry = resp_stop.get("telemetry_files", {})
+                for fname, content in telemetry.items():
+                    (run_dir / fname).write_text(content, encoding="utf-8")
+                if telemetry:
+                    print(f"  [Daemon Sync] Synchronized {len(telemetry)} telemetry CSVs ({', '.join(telemetry.keys())})")
             except Exception as e:
                 print(f"  [WARN] Daemon stop notification notice: {e}")
 
@@ -488,7 +532,14 @@ class Orchestrator:
                 legit_csv = run_dir / "legit_client.csv"
 
                 # Check if run is already completed (Checkpoint / Auto-Resume)
-                if self.resume and meta_file.is_file() and legit_csv.is_file() and legit_csv.stat().st_size > 100:
+                summary_json = run_dir / "metrics_summary.json"
+                is_complete = (
+                    meta_file.is_file() and
+                    legit_csv.is_file() and
+                    legit_csv.stat().st_size > 100 and
+                    (summary_json.is_file() or not self.use_target_daemon)
+                )
+                if self.resume and is_complete:
                     print(f"--- Progress: [{idx + 1}/{total_runs}] {run_name} \033[1;36m[ALREADY COMPLETED - RESUME SKIP]\033[0m ---")
                     skipped_count += 1
                     continue
@@ -550,17 +601,17 @@ def main():
     parser.add_argument("--no-resume", action="store_true", help="Disable auto-resume; re-run even if data exists")
     parser.add_argument("--batch", type=int, default=0, help="Run at most N runs then stop gracefully (0 = all)")
     parser.add_argument("--seed", type=int, default=42, help="Randomization seed (default: 42)")
-    parser.add_argument("--configs", help="Comma-separated configs: B0,B1,B2,X")
-    parser.add_argument("--scenarios", help="Comma-separated scenarios: S1,S2,S3")
-    parser.add_argument("--levels", help="Comma-separated levels (e.g. 0.5,1.0,2.0)")
+    parser.add_argument("--configs", nargs="*", help="Configs to run (e.g. --configs B0,B2,X or --configs B0 B2 X)")
+    parser.add_argument("--scenarios", nargs="*", help="Scenarios to run (e.g. --scenarios S1,S2,S3 or --scenarios S1 S2 S3)")
+    parser.add_argument("--levels", nargs="*", help="Levels to run (e.g. --levels 0.5,1.0,2.0 or --levels 0.5 1.0 2.0)")
     parser.add_argument("--reps", type=int, help="Number of repetitions per combination (default: 3)")
     args = parser.parse_args()
 
     params = load_params(Path(args.params))
 
-    custom_configs = [c.strip().upper() for c in args.configs.split(",")] if args.configs else None
-    custom_scenarios = [s.strip().upper() for s in args.scenarios.split(",")] if args.scenarios else None
-    custom_levels = [float(lvl.strip()) for lvl in args.levels.split(",")] if args.levels else None
+    custom_configs = parse_flexible_list(args.configs)
+    custom_scenarios = parse_flexible_list(args.scenarios)
+    custom_levels = parse_flexible_levels(args.levels)
 
     orchestrator = Orchestrator(
         params=params,

@@ -257,3 +257,18 @@ This document logs architectural and design decisions made throughout the lifecy
   5. Fallback to `"bpftool"` in the active environment.
 - **Rationale:** Ensures portable execution across physical workstations, local development machines, and test VMs without requiring code modifications or kernel-specific coupling.
 - **Rule for Agents:** Scripts, test runners, and loaders must never hardcode kernel release strings or absolute paths to distro-specific tool packages.
+
+### ADR-029: Orchestrator Pause/Resume Checkpointing, Batch Execution, and Cross-Host Telemetry Synchronization
+- **Status:** Accepted & Implemented (29 Oct 2026)
+- **Context:** Executing the full 108-run Phase B4 experimental matrix on twin physical lab workstations presents several operational risks:
+  1. The lab is shared or operating on tight time blocks where runs may be interrupted.
+  2. If the orchestrator is stopped with `Ctrl+C` or a power/network interruption occurs, restarting from scratch would waste hours.
+  3. In the 2-PC architecture, PC 2 (Generator) writes `legit_client.csv` and `run_meta.json`, while PC 1 (Target) runs `collect_metrics.py` and produces `metrics_summary.json` and server telemetry CSVs (`cpu_util.csv`, `throughput_pps.csv`, `bpf_stats.csv`). Without cross-host synchronization, PC 2 lacks the server telemetry required by `analyze.py`.
+  4. Command-line argument parsing crashed when operators passed space-separated arguments (e.g. `--configs B0 B2 X`).
+- **Decision:**
+  1. **Checkpoint & Auto-Resume:** In `src/scripts/orchestrator.py`, verify before each run whether `run_meta.json`, `legit_client.csv` (size > 100 B), and `metrics_summary.json` already exist on disk. If so, log `[ALREADY COMPLETED - RESUME SKIP]` and skip to the next run without repeating work.
+  2. **Batch Execution Control (`--batch <N>`):** Support running up to $N$ runs and gracefully exiting, allowing operators to execute benchmarks in 20-30 minute slices.
+  3. **Interactive Step-by-Step Pause (`--pause`):** Provide prompt `>>> Press [ENTER] to start next run, or [Ctrl+C] to exit and resume later...` after each run for manual inspection.
+  4. **Cross-Host Telemetry Streaming:** In `src/scripts/target_daemon.py`, upon receiving `cmd: "stop"`, wait for `collector_proc`, read `metrics_summary.json` and the server CSVs, and return them inside the JSON response payload. `orchestrator.py` saves them directly into `results/raw/<run_name>/` on PC 2, guaranteeing all 6 artifacts exist locally on PC 2 in real time.
+  5. **Flexible CLI Argument Parser:** Implement `parse_flexible_list` and `parse_flexible_levels` with `nargs="*"` in `orchestrator.py` to seamlessly accept both comma-separated and space-separated parameters.
+- **Rationale:** Guarantees zero data loss, eliminates manual file copying across hosts, and enables safe execution in shared offline lab environments.

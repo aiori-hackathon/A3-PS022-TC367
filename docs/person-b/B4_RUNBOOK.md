@@ -99,7 +99,11 @@ sudo python3 ./src/scripts/orchestrator.py --target 10.99.0.2 --iface eno1 --mod
   ```bash
   sudo python3 ./src/scripts/orchestrator.py --target 10.99.0.2 --iface eno1 --mode daemon
   ```
-- The orchestrator automatically inspects `results/raw/`, detects all runs that already have `run_meta.json` and `legit_client.csv`, prints `[ALREADY COMPLETED - RESUME SKIP]`, and seamlessly resumes from the next unfinished run!
+- The orchestrator automatically inspects `results/raw/`, detects all runs that already have `run_meta.json`, `legit_client.csv`, and `metrics_summary.json`, prints `[ALREADY COMPLETED - RESUME SKIP]`, and seamlessly resumes from the next unfinished run!
+
+### Method D: Automated Cross-Host Telemetry Streaming
+- PC 1 (`target_daemon.py`) automatically streams back `metrics_summary.json` and server telemetry CSVs (`cpu_util.csv`, `throughput_pps.csv`, `bpf_stats.csv`) to PC 2 upon run completion.
+- PC 2 immediately possesses all 6 required artifacts per run in `results/raw/<run_name>/` without requiring manual file copying or network sharing between runs.
 
 ---
 
@@ -125,11 +129,17 @@ Once the orchestrator completes all runs:
 ### Step 1: Verify Data Integrity
 On PC 2:
 ```bash
-# Check number of completed runs
-ls -1d results/raw/* | wc -l
+# Check number of completed benchmark runs (108 for Target Tier):
+ls -1d results/raw/S*_* | wc -l
 
-# Generate SHA-256 checksums of all CSV artifacts
-sha256sum results/raw/*/*.csv > results/raw/checksums.sha256
+# Verify all 6 artifacts exist in each run directory:
+for d in results/raw/S*_*; do
+    c=$(ls -1 "$d"/*.csv "$d"/*.json 2>/dev/null | wc -l)
+    if [ "$c" -lt 6 ]; then echo "[WARN] Incomplete run: $d ($c files)"; fi
+done
+
+# Generate SHA-256 checksums of all CSV and JSON artifacts
+sha256sum results/raw/*/*.csv results/raw/*/*.json > results/raw/checksums.sha256
 ```
 
 ### Step 2: Generate Statistical Analysis & Summary Plots
@@ -140,10 +150,10 @@ python3 ./src/scripts/analyze.py --input-dir results/raw/ --output-dir results/
 Verify generated outputs:
 - `results/analysis_summary.json`
 - `results/analysis_table.csv`
-- `results/plots/kavach_summary.png`
+- `results/plots/kavach_dryrun_summary.png`
 
 ### Step 3: Copy to USB Pendrive
-Mount the pendrive on PC 2 and copy:
+Mount the pendrive on PC 2 (and optionally PC 1 as ground-truth backup) and copy:
 ```bash
 # Example USB mount path: /media/aiori-2/.../
 cp -r results/raw/ /media/aiori-2/<PENDRIVE>/kavach_b4_results/
@@ -153,4 +163,41 @@ cp -r results/plots/ /media/aiori-2/<PENDRIVE>/kavach_b4_results/
 sync
 ```
 Eject pendrive and ingest results into git repository!
+
+---
+
+## 6. Pre-Run Feature Verification on Lab PCs (5-Minute Smoke Protocol)
+
+Before committing to the full multi-hour Target Tier run, execute these 4 quick validation steps:
+
+1. **Verify Daemon Ping:**
+   On PC 2:
+   ```bash
+   python3 -c "import socket, json; s=socket.socket(); s.connect(('10.99.0.2', 9999)); s.send(b'{\"cmd\":\"ping\"}'); print(s.recv(1024).decode())"
+   ```
+   *Expected:* `{"status": "ok", ...}`
+
+2. **Verify Batch Mode (`--batch 2`):**
+   On PC 2:
+   ```bash
+   sudo python3 ./src/scripts/orchestrator.py --target 10.99.0.2 --iface eno1 --mode daemon --dry-run --batch 2
+   ```
+   *Expected:* Runs exactly 2 rapid dry-runs and exits cleanly with `[BATCH LIMIT]`.
+
+3. **Verify Interactive Pause & Auto-Resume:**
+   On PC 2:
+   ```bash
+   sudo python3 ./src/scripts/orchestrator.py --target 10.99.0.2 --iface eno1 --mode daemon --dry-run --batch 3 --pause
+   ```
+   *Expected:*
+   - Skips the first 2 already completed runs (`[ALREADY COMPLETED - RESUME SKIP]`).
+   - Runs run 3, then prompts: `>>> Press [ENTER] to start next run, or [Ctrl+C] to exit and resume later...`.
+   - Hit `Ctrl+C` to exit cleanly.
+
+4. **Verify Telemetry Completeness:**
+   On PC 2, check that the dry run directory contains all 6 artifacts:
+   ```bash
+   ls -la results/raw/S*_*_1/
+   ```
+   *Expected:* `legit_client.csv`, `run_meta.json`, `metrics_summary.json`, `cpu_util.csv`, `throughput_pps.csv`, `bpf_stats.csv`.
 

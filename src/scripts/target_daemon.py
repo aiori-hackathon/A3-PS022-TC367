@@ -26,9 +26,11 @@ BASELINES_DIR = SRC_DIR / "baselines"
 SCRIPTS_DIR = SRC_DIR / "scripts"
 DNS_DIR = SRC_DIR / "dns"
 XDP_DIR = REPO_ROOT / "xdp"
+RESULTS_RAW_DIR = REPO_ROOT / "results" / "raw"
 PARAMS_YAML = SRC_DIR / "params.yaml"
 
 collector_proc = None
+current_run_dir = None
 
 
 def parse_args():
@@ -50,6 +52,15 @@ def run_cmd(cmd, check=True):
 
 def reset_target_state(iface: str):
     """Cleanly detaches XDP, flushes nftables, restarts DNS server pinned to Core 1."""
+    global collector_proc
+    if collector_proc and collector_proc.poll() is None:
+        try:
+            collector_proc.terminate()
+            collector_proc.wait(timeout=2.0)
+        except Exception:
+            pass
+        collector_proc = None
+
     print("  [Reset] Detaching filters and resetting host state...")
     # 1. Detach XDP
     run_cmd(["ip", "link", "set", "dev", iface, "xdpgeneric", "off"], check=False)
@@ -120,12 +131,26 @@ def apply_target_config(config: str, iface: str, src_rate: int, src_burst: int, 
 
 
 def handle_client(conn, addr, args):
-    global collector_proc
+    global collector_proc, current_run_dir
     try:
-        data = conn.recv(4096).decode("utf-8").strip()
-        if not data:
+        chunks = []
+        while True:
+            chunk = conn.recv(4096)
+            if not chunk:
+                break
+            chunks.append(chunk)
+            try:
+                raw_text = b"".join(chunks).decode("utf-8").strip()
+                if raw_text:
+                    json.loads(raw_text)
+                    break
+            except ValueError:
+                pass
+
+        raw_text = b"".join(chunks).decode("utf-8").strip()
+        if not raw_text:
             return
-        msg = json.loads(data)
+        msg = json.loads(raw_text)
         cmd = msg.get("cmd")
 
         if cmd == "ping":
@@ -135,12 +160,14 @@ def handle_client(conn, addr, args):
         elif cmd == "prepare":
             config = msg.get("config", "B0")
             duration = msg.get("duration", 80)
-            run_dir = Path(msg.get("run_dir", f"/tmp/kavach_run_{int(time.time())}"))
+            run_name = Path(msg.get("run_dir", f"kavach_run_{int(time.time())}")).name
+            run_dir = RESULTS_RAW_DIR / run_name
             run_dir.mkdir(parents=True, exist_ok=True)
+            current_run_dir = run_dir
 
             src_rate = msg.get("src_rate", 500)
             src_burst = msg.get("src_burst", 20)
-            glob_rate = msg.get("glob_rate", 7000)
+            glob_rate = msg.get("glob_rate", 70000)
             glob_burst = msg.get("glob_burst", 20)
 
             print(f"\n>>> Received Prepare Command: Config={config}, Duration={duration}s, RunDir={run_dir.name}")
@@ -165,8 +192,38 @@ def handle_client(conn, addr, args):
         elif cmd == "stop":
             print("  [Stop] Finalizing run and stopping collector...")
             if collector_proc and collector_proc.poll() is None:
-                collector_proc.wait(timeout=10.0)
-            resp = {"status": "done"}
+                try:
+                    collector_proc.wait(timeout=10.0)
+                except subprocess.TimeoutExpired:
+                    collector_proc.terminate()
+                    collector_proc.wait(timeout=2.0)
+            collector_proc = None
+
+            # Harvest metrics summary and telemetry files for PC 2
+            summary_data = {}
+            telemetry_files = {}
+            if current_run_dir and current_run_dir.is_dir():
+                summary_file = current_run_dir / "metrics_summary.json"
+                if summary_file.is_file():
+                    try:
+                        with open(summary_file, "r", encoding="utf-8") as f:
+                            summary_data = json.load(f)
+                    except Exception as e:
+                        print(f"  [WARN] Failed to read metrics_summary.json: {e}", file=sys.stderr)
+
+                for fname in ["cpu_util.csv", "throughput_pps.csv", "bpf_stats.csv"]:
+                    fpath = current_run_dir / fname
+                    if fpath.is_file():
+                        try:
+                            telemetry_files[fname] = fpath.read_text(encoding="utf-8")
+                        except Exception as e:
+                            print(f"  [WARN] Failed to read {fname}: {e}", file=sys.stderr)
+
+            resp = {
+                "status": "done",
+                "metrics_summary": summary_data,
+                "telemetry_files": telemetry_files
+            }
             conn.sendall(json.dumps(resp).encode("utf-8"))
 
         else:
