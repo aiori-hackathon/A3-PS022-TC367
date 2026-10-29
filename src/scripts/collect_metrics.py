@@ -128,7 +128,7 @@ def read_bpf_stats(map_path: Path = BPF_PIN_COUNTERS) -> Dict[str, int]:
     try:
         # Note: -j must precede the subcommand in bpftool
         res = subprocess.run(
-            ["bpftool", "-j", "map", "dump", "pinned", str(map_path)],
+            ["/usr/lib/linux-tools/6.8.0-147-generic/bpftool", "-j", "map", "dump", "pinned", str(map_path)],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
