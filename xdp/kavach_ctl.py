@@ -40,7 +40,7 @@ def command(args, diagnostics=False):
     return result.stdout
 
 def bpf(*args):
-    return json.loads(command(['bpftool', '-j', *map(str, args)]))
+    return json.loads(command(['/usr/lib/linux-tools/6.8.0-147-generic/bpftool', '-j', *map(str, args)]))
 
 def one(value):
     if isinstance(value, list):
@@ -209,7 +209,7 @@ def cmd_load(args):
         PIN.mkdir()
         try:
             # Load only; diagnostics remain on stderr via the command wrapper.
-            command(['bpftool', '-d', 'prog', 'load', str(obj), str(PIN / 'prog'),
+            command(['/usr/lib/linux-tools/6.8.0-147-generic/bpftool', '-d', 'prog', 'load', str(obj), str(PIN / 'prog'),
                      'type', 'xdp', 'pinmaps', str(PIN)], diagnostics=True)
             info = check_maps()
         except Exception:
@@ -227,7 +227,7 @@ def cmd_config(args):
         info = check_maps()
         if attachments(XDP(), info['id']):
             raise RuntimeError('Detach before changing config; stop any concurrent prog-run tests too')
-        command(['bpftool', 'map', 'update', 'pinned', str(PIN / 'kavach_cfg'),
+        command(['/usr/lib/linux-tools/6.8.0-147-generic/bpftool', 'map', 'update', 'pinned', str(PIN / 'kavach_cfg'),
                  'key', 'hex', '00', '00', '00', '00', 'value', 'hex',
                  *[f'{byte:02x}' for byte in value]])
     print('Config written. Reload before an independent test to reset limiter state.', file=sys.stderr)
