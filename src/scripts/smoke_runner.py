@@ -122,7 +122,9 @@ def parse_legit_csv(csv_path: Path) -> Tuple[int, int, float, float]:
         parts = line.split(",")
         if len(parts) >= 7:
             total += 1
-            if parts[6].strip().upper() == "SUCCESS":
+            status = parts[6].strip().upper()
+            rcode = parts[5].strip().upper()
+            if status in ["SUCCESS", "ANSWERED"] or rcode in ["0", "NOERROR"]:
                 answered += 1
                 try:
                     latencies.append(float(parts[4]))

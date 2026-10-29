@@ -91,7 +91,8 @@ def compute_legit_metrics(csv_path: Path) -> Tuple[int, int, float, float, float
         if len(parts) >= 7:
             total += 1
             status = parts[6].strip().upper()
-            if status == "SUCCESS":
+            rcode = parts[5].strip().upper()
+            if status in ["SUCCESS", "ANSWERED"] or rcode in ["0", "NOERROR"]:
                 answered += 1
                 try:
                     lat_ms = float(parts[4])
