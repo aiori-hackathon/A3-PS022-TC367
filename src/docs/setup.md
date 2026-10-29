@@ -183,6 +183,12 @@ Choose the matrix tier according to time constraints:
   sudo python3 ./src/scripts/orchestrator.py --target 10.99.0.2 --iface eno1 --configs B0 B2 X --levels 1.0 2.0 --reps 2 --mode daemon
   ```
 
+> [!TIP]
+> **Pausing & Resuming in a Shared Lab:**
+> - To pause and prompt between runs: add `--pause` (press Enter to continue each run, or Ctrl+C to exit safely).
+> - To run a limited batch (e.g. 15 runs in a 25-minute break): add `--batch 15`.
+> - **Auto-Resume:** You can stop with `Ctrl+C` anytime; re-running the orchestrator automatically detects completed runs in `results/raw/` and resumes where it left off!
+
 ### Step 4: Data Verification & USB Extraction
 1. Verify raw runs are populated:
    ```bash

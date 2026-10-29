@@ -16,12 +16,13 @@ import os
 import sys
 import time
 import json
+import socket
 import random
 import signal
 import argparse
 import subprocess
 from pathlib import Path
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 SRC_DIR = REPO_ROOT / "src"
@@ -48,6 +49,32 @@ def run_cmd(cmd: List[str], check: bool = True, capture: bool = True) -> subproc
         err = res.stderr.strip() if res.stderr else res.stdout.strip()
         raise RuntimeError(f"Command failed ({res.returncode}): {' '.join(cmd)}\n{err}")
     return res
+
+
+def test_target_daemon(host: str, port: int) -> bool:
+    """Checks whether target_daemon.py is listening on the target host."""
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(1.0)
+        s.connect((host, port))
+        s.sendall(json.dumps({"cmd": "ping"}).encode("utf-8"))
+        data = s.recv(1024).decode("utf-8")
+        s.close()
+        resp = json.loads(data)
+        return resp.get("status") == "ok"
+    except Exception:
+        return False
+
+
+def send_daemon_cmd(host: str, port: int, payload: Dict[str, Any]) -> Dict[str, Any]:
+    """Sends JSON command to target daemon on target host and returns response."""
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.settimeout(20.0)
+    s.connect((host, port))
+    s.sendall(json.dumps(payload).encode("utf-8"))
+    data = s.recv(4096).decode("utf-8")
+    s.close()
+    return json.loads(data)
 
 
 def load_params(params_path: Path) -> Dict[str, Any]:
@@ -96,12 +123,23 @@ def get_xdp_mode(netns: str, iface: str) -> str:
 
 class Orchestrator:
     def __init__(self, params: Dict[str, Any], dry_run: bool = False, seed: int = 42,
-                 custom_configs: List[str] = None, custom_scenarios: List[str] = None,
-                 host_mode: bool = False, iface: Optional[str] = None):
+                 custom_configs: Optional[List[str]] = None, custom_scenarios: Optional[List[str]] = None,
+                 custom_levels: Optional[List[float]] = None, custom_reps: Optional[int] = None,
+                 host_mode: bool = False, iface: Optional[str] = None,
+                 target_ip: Optional[str] = None, daemon_port: int = 9999,
+                 mode: str = "auto", pause_between: bool = False,
+                 resume: bool = True, batch_size: int = 0):
         self.params = params
         self.dry_run = dry_run
         self.seed = seed
         self.host_mode = host_mode
+        self.pause_between = pause_between
+        self.resume = resume
+        self.batch_size = batch_size
+        self.daemon_port = daemon_port
+
+        self.target_ip = target_ip or params.get("network", {}).get("target_ip", "10.99.0.2")
+        self.target_port = params.get("network", {}).get("target_port", 53)
 
         if host_mode or not Path("/run/netns/srv").exists():
             self.netns_gen = ""
@@ -113,8 +151,23 @@ class Orchestrator:
             self.netns_srv = params.get("network", {}).get("netns_srv", "srv")
             self.iface_gen = iface or params.get("network", {}).get("iface_gen", "vgen")
             self.iface_srv = iface or params.get("network", {}).get("iface_srv", "vsrv")
-        self.target_ip = params.get("network", {}).get("target_ip", "10.99.0.2")
-        self.target_port = params.get("network", {}).get("target_port", 53)
+
+        # Daemon detection
+        if mode == "daemon":
+            self.use_target_daemon = True
+            print(f"\033[1;32m[Orchestrator] Target Daemon mode explicitly enabled for {self.target_ip}:{self.daemon_port}.\033[0m")
+        elif mode == "local":
+            self.use_target_daemon = False
+            print("[Orchestrator] Running in local/direct host execution mode.")
+        else:
+            # Auto-detect
+            has_daemon = test_target_daemon(self.target_ip, self.daemon_port)
+            if has_daemon:
+                self.use_target_daemon = True
+                print(f"\033[1;32m[Orchestrator] Target Daemon detected on {self.target_ip}:{self.daemon_port}. Automated remote control ACTIVE!\033[0m")
+            else:
+                self.use_target_daemon = False
+                print(f"[Orchestrator] Target Daemon not detected on {self.target_ip}:{self.daemon_port}. Running in local mode.")
 
         # Durations
         if dry_run:
@@ -132,24 +185,33 @@ class Orchestrator:
         self.limits = params.get("filter_limits", {})
         self.src_rate = self.limits.get("src_rate", 500)
         self.src_burst = self.limits.get("src_burst", 20)
-        self.glob_rate = self.limits.get("glob_rate", 7000)
-        self.glob_burst = self.limits.get("glob_burst", 100)
+        self.glob_rate = self.limits.get("glob_rate", 70000)
+        self.glob_burst = self.limits.get("glob_burst", 20)
 
         self.calibration = params.get("calibration", {})
-        self.S_pps = self.calibration.get("S_pps", 10000)
-        self.levels = self.calibration.get("levels", [1.0]) if not dry_run else [1.0]
+        self.S_pps = self.calibration.get("S_pps", 100000)
+        self.levels = custom_levels or (self.calibration.get("levels", [0.5, 1.0, 2.0]) if not dry_run else [1.0])
 
         # Configs and Scenarios
         orch_cfg = params.get("orchestrator", {})
         self.configs = custom_configs or orch_cfg.get("configs", ["B0", "B1", "B2", "X"])
         self.scenarios = custom_scenarios or orch_cfg.get("scenarios", ["S1", "S2", "S3"])
-        self.reps = 1 if dry_run else orch_cfg.get("reps", 1)
+        self.reps = custom_reps or (1 if dry_run else orch_cfg.get("repetitions", 3))
 
         RESULTS_RAW_DIR.mkdir(parents=True, exist_ok=True)
 
     def reset_state(self):
         """Clean teardown of filters, caches, and daemons between runs."""
         print("  [Reset] Flushing filters, detaching XDP, clearing state...")
+        if self.use_target_daemon:
+            try:
+                send_daemon_cmd(self.target_ip, self.daemon_port, {"cmd": "prepare", "config": "B0", "duration": 1})
+                send_daemon_cmd(self.target_ip, self.daemon_port, {"cmd": "stop"})
+            except Exception as e:
+                print(f"  [Reset WARN] Remote daemon reset notice: {e}")
+            time.sleep(0.5)
+            return
+
         ns_srv_arg = f"--net=/run/netns/{self.netns_srv}" if (self.netns_srv and Path(f"/run/netns/{self.netns_srv}").exists()) else None
         ctl_prefix = ["sudo", "nsenter", ns_srv_arg] if ns_srv_arg else ["sudo"]
 
@@ -173,7 +235,7 @@ class Orchestrator:
                 run_cmd(["sudo", "ip", "netns", "exec", self.netns_gen, "ip", "neigh", "flush", "all"], check=False)
 
             # 5. Restart DNS server in srv namespace (Core 1, RRL off)
-            run_cmd(["sudo", str(DNS_DIR / "start_dns.sh"), "--netns", self.netns_srv, "--iface", self.iface_srv], check=True)
+            run_cmd(["sudo", str(DNS_DIR / "start_dns.sh"), "--netns", self.netns_srv, "--iface", self.iface_srv], check=False)
         else:
             # Host Mode
             run_cmd(["sudo", "ip", "link", "set", "dev", self.iface_srv, "xdpgeneric", "off"], check=False)
@@ -187,7 +249,7 @@ class Orchestrator:
             run_cmd(["sudo", "nft", "flush", "ruleset"], check=False)
             run_cmd(["sudo", "ip", "neigh", "flush", "all"], check=False)
 
-            run_cmd(["sudo", str(DNS_DIR / "start_dns.sh"), "--host", "--iface", self.iface_srv], check=True)
+            run_cmd(["sudo", str(DNS_DIR / "start_dns.sh"), "--host", "--iface", self.iface_srv], check=False)
 
         time.sleep(0.5)
 
@@ -250,28 +312,44 @@ class Orchestrator:
         print(f">>> STARTING RUN: {run_name} (Warmup: {self.warmup_s}s, Window: {self.window_s}s, Cooldown: {self.cooldown_s}s)")
         print(f"{'='*70}")
 
-        self.reset_state()
-        self.apply_config(config)
-        detected_xdp_mode = get_xdp_mode(self.netns_srv, self.iface_srv)
-
-        # Calculate flood rate
-        flood_rate = int(self.S_pps * level)
         total_collect_duration = self.warmup_s + self.window_s + self.cooldown_s
         legit_duration = self.warmup_s + self.window_s
-
+        flood_rate = int(self.S_pps * level)
         legit_csv = run_dir / "legit_client.csv"
 
-        # 1. Start Telemetry Collector
-        collect_prefix = ["sudo", "nsenter", f"--net=/run/netns/{self.netns_srv}"] if self.netns_srv else ["sudo"]
-        collect_cmd = collect_prefix + [
-            "python3", str(SCRIPTS_DIR / "collect_metrics.py"),
-            "-d", str(total_collect_duration),
-            "-o", str(run_dir),
-            "-i", self.iface_srv,
-            "-c", "1",
-            "--interval", "1.0"
-        ]
-        p_collect = subprocess.Popen(collect_cmd)
+        detected_xdp_mode = "none"
+        p_collect = None
+
+        if self.use_target_daemon:
+            payload = {
+                "cmd": "prepare",
+                "config": config,
+                "duration": total_collect_duration,
+                "run_dir": str(run_dir),
+                "src_rate": self.src_rate,
+                "src_burst": self.src_burst,
+                "glob_rate": self.glob_rate,
+                "glob_burst": self.glob_burst
+            }
+            resp = send_daemon_cmd(self.target_ip, self.daemon_port, payload)
+            detected_xdp_mode = resp.get("xdp_mode", "none")
+            print(f"  [Daemon] Target prepared successfully (XDP Mode: {detected_xdp_mode}).")
+        else:
+            self.reset_state()
+            self.apply_config(config)
+            detected_xdp_mode = get_xdp_mode(self.netns_srv, self.iface_srv)
+
+            # Start Telemetry Collector locally
+            collect_prefix = ["sudo", "nsenter", f"--net=/run/netns/{self.netns_srv}"] if self.netns_srv else ["sudo"]
+            collect_cmd = collect_prefix + [
+                "python3", str(SCRIPTS_DIR / "collect_metrics.py"),
+                "-d", str(total_collect_duration),
+                "-o", str(run_dir),
+                "-i", self.iface_srv,
+                "-c", "1",
+                "--interval", "1.0"
+            ]
+            p_collect = subprocess.Popen(collect_cmd)
 
         # 2. Start Legitimate Client (100 QPS)
         gen_prefix = ["sudo", "ip", "netns", "exec", self.netns_gen] if self.netns_gen else ["sudo"]
@@ -290,7 +368,7 @@ class Orchestrator:
         time.sleep(self.warmup_s)
 
         # 4. Measurement Window: Start Flood Traffic
-        print(f"  [Window] Launching Flood Scenario {scenario} at {flood_rate} pps for {self.window_s}s...")
+        print(f"  [Window] Launching Flood Scenario {scenario} at {flood_rate:,} pps for {self.window_s}s...")
         kavach_gen = TRAFFIC_DIR / "kavach_gen"
         if not kavach_gen.is_file():
             run_cmd(["make", "-C", str(TRAFFIC_DIR)])
@@ -330,7 +408,13 @@ class Orchestrator:
         # 5. Cool-down Period
         print(f"  [Cooldown] Cooling down for {self.cooldown_s}s...")
         p_legit.wait()
-        p_collect.wait()
+        if p_collect:
+            p_collect.wait()
+        if self.use_target_daemon:
+            try:
+                send_daemon_cmd(self.target_ip, self.daemon_port, {"cmd": "stop"})
+            except Exception as e:
+                print(f"  [WARN] Daemon stop notification notice: {e}")
 
         # 6. Save Run Metadata
         meta = {
@@ -361,7 +445,7 @@ class Orchestrator:
         print(f"[COMPLETED] Run {run_name} finished successfully. Artifacts saved in {run_dir}")
 
     def run_matrix(self):
-        """Generates and executes the randomized benchmark matrix."""
+        """Generates and executes the randomized benchmark matrix with resume & pause support."""
         runs = []
         for s in self.scenarios:
             for c in self.configs:
@@ -375,6 +459,8 @@ class Orchestrator:
         print(f"Configs   : {self.configs}")
         print(f"Scenarios : {self.scenarios}")
         print(f"Levels    : {self.levels}")
+        print(f"Reps      : {self.reps}")
+        print(f"AutoResume: {self.resume} | PauseBetween: {self.pause_between} | BatchSize: {self.batch_size}")
         print(f"==============================================================================")
 
         # Seeded pseudo-random shuffle
@@ -391,13 +477,54 @@ class Orchestrator:
             json.dump(order_meta, f_order, indent=2)
 
         start_time = time.time()
-        for idx, (s, c, lvl, rep) in enumerate(shuffled_runs):
-            print(f"\n--- Progress: [{idx + 1}/{total_runs}] ---")
-            self.execute_run(s, c, lvl, rep)
+        completed_count = 0
+        skipped_count = 0
+
+        try:
+            for idx, (s, c, lvl, rep) in enumerate(shuffled_runs):
+                run_name = f"{s}_{c}_{lvl}x_{rep}"
+                run_dir = RESULTS_RAW_DIR / run_name
+                meta_file = run_dir / "run_meta.json"
+                legit_csv = run_dir / "legit_client.csv"
+
+                # Check if run is already completed (Checkpoint / Auto-Resume)
+                if self.resume and meta_file.is_file() and legit_csv.is_file() and legit_csv.stat().st_size > 100:
+                    print(f"--- Progress: [{idx + 1}/{total_runs}] {run_name} \033[1;36m[ALREADY COMPLETED - RESUME SKIP]\033[0m ---")
+                    skipped_count += 1
+                    continue
+
+                print(f"\n--- Progress: [{idx + 1}/{total_runs}] ---")
+                self.execute_run(s, c, lvl, rep)
+                completed_count += 1
+
+                # Check batch limit
+                if self.batch_size > 0 and completed_count >= self.batch_size:
+                    print(f"\n\033[1;32m[BATCH LIMIT] Completed {completed_count} runs in this batch. Stopping gracefully.\033[0m")
+                    print("You can resume the remaining runs whenever the lab is free!")
+                    break
+
+                # Check pause-between
+                if self.pause_between and (idx + 1 < total_runs):
+                    print(f"\n\033[1;33m[PAUSED] Run {run_name} finished. Progress: [{idx + 1}/{total_runs} complete].\033[0m")
+                    print("\033[1;33m>>> Press [ENTER] to start next run, or [Ctrl+C] to exit and resume later...\033[0m")
+                    try:
+                        input()
+                    except EOFError:
+                        pass
+
+        except KeyboardInterrupt:
+            print("\n\n\033[1;33m[INTERRUPTED] Experiment paused by user (Ctrl+C).\033[0m")
+            print(f"Runs completed this session: {completed_count} | Runs previously completed: {skipped_count}")
+            print(f"Total progress: {completed_count + skipped_count}/{total_runs} runs.")
+            print("\033[1;32m[SAFE] All completed runs are saved on disk in results/raw/.\033[0m")
+            print("To resume whenever the lab is free, simply rerun:")
+            print(f"    sudo python3 {' '.join(sys.argv)}")
+            self.reset_state()
+            sys.exit(0)
 
         elapsed = time.time() - start_time
         print(f"\n==============================================================================")
-        print(f"All {total_runs} Benchmark Runs Completed in {elapsed:.1f} seconds ({elapsed/60:.2f} mins).")
+        print(f"Benchmark Session Ended. Completed {completed_count} runs (Skipped {skipped_count}) in {elapsed:.1f}s.")
         print(f"==============================================================================")
 
         # Final cleanup
@@ -415,15 +542,25 @@ def main():
     parser.add_argument("--dry-run", action="store_true", help="Execute rapid dry run with shortened windows")
     parser.add_argument("--host", action="store_true", help="Execute on physical host network stack without namespaces")
     parser.add_argument("--iface", help="Physical interface name (e.g. eno1)")
+    parser.add_argument("--target", default="10.99.0.2", help="Target server IP (default: 10.99.0.2)")
+    parser.add_argument("--daemon-port", type=int, default=9999, help="Target daemon port (default: 9999)")
+    parser.add_argument("--mode", choices=["auto", "daemon", "local"], default="auto",
+                        help="Execution mode (auto: detect daemon; daemon: require daemon; local: namespaces/host)")
+    parser.add_argument("--pause", action="store_true", help="Pause and prompt for [ENTER] between runs")
+    parser.add_argument("--no-resume", action="store_true", help="Disable auto-resume; re-run even if data exists")
+    parser.add_argument("--batch", type=int, default=0, help="Run at most N runs then stop gracefully (0 = all)")
     parser.add_argument("--seed", type=int, default=42, help="Randomization seed (default: 42)")
     parser.add_argument("--configs", help="Comma-separated configs: B0,B1,B2,X")
     parser.add_argument("--scenarios", help="Comma-separated scenarios: S1,S2,S3")
+    parser.add_argument("--levels", help="Comma-separated levels (e.g. 0.5,1.0,2.0)")
+    parser.add_argument("--reps", type=int, help="Number of repetitions per combination (default: 3)")
     args = parser.parse_args()
 
     params = load_params(Path(args.params))
 
-    custom_configs = [c.strip() for c in args.configs.split(",")] if args.configs else None
-    custom_scenarios = [s.strip() for s in args.scenarios.split(",")] if args.scenarios else None
+    custom_configs = [c.strip().upper() for c in args.configs.split(",")] if args.configs else None
+    custom_scenarios = [s.strip().upper() for s in args.scenarios.split(",")] if args.scenarios else None
+    custom_levels = [float(lvl.strip()) for lvl in args.levels.split(",")] if args.levels else None
 
     orchestrator = Orchestrator(
         params=params,
@@ -431,8 +568,16 @@ def main():
         seed=args.seed,
         custom_configs=custom_configs,
         custom_scenarios=custom_scenarios,
+        custom_levels=custom_levels,
+        custom_reps=args.reps,
         host_mode=args.host,
-        iface=args.iface
+        iface=args.iface,
+        target_ip=args.target,
+        daemon_port=args.daemon_port,
+        mode=args.mode,
+        pause_between=args.pause,
+        resume=not args.no_resume,
+        batch_size=args.batch
     )
     orchestrator.run_matrix()
 

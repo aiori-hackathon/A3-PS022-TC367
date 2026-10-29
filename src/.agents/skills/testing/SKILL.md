@@ -239,6 +239,10 @@ Per `src/AGENTS.md` Section 11 & 14:
    sudo ./src/scripts/pin_core.sh --iface eno1 --core 1 --role generator
    sudo python3 ./src/scripts/orchestrator.py --target 10.99.0.2 --iface eno1 --mode daemon
    ```
+   *Optional Controls for Intermittent Lab Availability:*
+   - Add `--pause` to prompt for `[Enter]` after each run.
+   - Add `--batch <N>` to execute only $N$ runs before gracefully stopping.
+   - Stop anytime with `Ctrl+C`; re-running automatically resumes where it left off!
 3. **Data Verification & Freeze:**
    - Verify all runs populated in `results/raw/<scenario>_<config>_<level>_<rep>/`.
    - Verify SHA-256 checksums of raw CSVs: `sha256sum results/raw/*/*.csv > results/raw/checksums.sha256`.

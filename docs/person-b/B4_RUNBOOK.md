@@ -70,7 +70,40 @@ Choose the tier based on your lab time budget:
 
 ---
 
-## 3. Monitoring & Anomaly Handling
+## 3. Pausing, Batching, and Resuming (When Lab is in Intermittent Use)
+
+If the lab is shared or computers might be needed by others during the day, use these built-in controls:
+
+### Method A: Step-by-Step Interactive Pause (`--pause`)
+Add `--pause` to the orchestrator command:
+```bash
+sudo python3 ./src/scripts/orchestrator.py --target 10.99.0.2 --iface eno1 --mode daemon --pause
+```
+- After each individual run finishes, the orchestrator safely cleans up filters and prints:
+  `[PAUSED] Run S1_B0_1.0x_1 finished. Progress: [1/108 complete].`
+  `>>> Press [ENTER] to start next run, or [Ctrl+C] to exit and resume later...`
+- You can let it sit paused on screen as long as you want, or hit `Ctrl+C` to close terminal safely.
+
+### Method B: Batch Mode (`--batch <N>`)
+If you only have 30 or 45 minutes between lab sessions, tell the orchestrator to run only $N$ runs and then stop:
+```bash
+# Run a batch of 15 runs (~25 mins), then stop:
+sudo python3 ./src/scripts/orchestrator.py --target 10.99.0.2 --iface eno1 --mode daemon --batch 15
+```
+- It completes 15 runs, saves all data to `results/raw/`, resets target state, and cleanly exits.
+
+### Method C: Seamless Auto-Resume Anytime (`Ctrl+C` Friendly)
+- You can press `Ctrl+C` at **any time** while the orchestrator is running.
+- The orchestrator cleanly resets the target server and leaves all completed runs untouched in `results/raw/`.
+- When you return to the lab hours later (or the next day), simply rerun the **exact same command**:
+  ```bash
+  sudo python3 ./src/scripts/orchestrator.py --target 10.99.0.2 --iface eno1 --mode daemon
+  ```
+- The orchestrator automatically inspects `results/raw/`, detects all runs that already have `run_meta.json` and `legit_client.csv`, prints `[ALREADY COMPLETED - RESUME SKIP]`, and seamlessly resumes from the next unfinished run!
+
+---
+
+## 4. Monitoring & Anomaly Handling
 
 - **Live Progress:** The orchestrator prints progress for each run:
   `[1/108] Running S1_B0_1.0x_1 (Warmup 10s, Measure 60s, Cooldown 10s)...`
@@ -85,7 +118,7 @@ Choose the tier based on your lab time budget:
 
 ---
 
-## 4. Post-Run Verification & Data Extraction
+## 5. Post-Run Verification & Data Extraction
 
 Once the orchestrator completes all runs:
 
