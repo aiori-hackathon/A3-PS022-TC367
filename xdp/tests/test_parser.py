@@ -18,7 +18,7 @@ NAMES = (
 
 def bpf(*args):
     result = subprocess.run(
-        ["bpftool", "-j", *args], capture_output=True, text=True
+        ["/usr/lib/linux-tools/6.8.0-147-generic/bpftool", "-j", *args], capture_output=True, text=True
     )
     if result.returncode:
         raise RuntimeError(result.stderr.strip() or result.stdout.strip())
