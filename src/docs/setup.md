@@ -80,26 +80,71 @@ Both machines currently expose only **one** network interface (`eno1`), which co
      - PC 2 (Generator): `10.99.0.1/24`
   5. Work locally via physical keyboard and monitor (or secondary USB-Ethernet adapter if SSH over campus network is required).
 
-### 4.2 Required Host Tuning Before Benchmark Runs
-Run the following commands on both hosts:
+### 4.2 Automated Host Tuning & Core Pinning Script
+Instead of running manual tuning commands, run `src/scripts/pin_core.sh` on both hosts:
 
 ```bash
-# 1. Switch CPU Governor from 'powersave' to 'performance'
-echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
+# On PC 1 (Target / Server):
+sudo ./src/scripts/pin_core.sh --iface eno1 --core 1 --role target
 
-# 2. Prevent background upgrade jitter
-sudo systemctl stop unattended-upgrades
-sudo systemctl disable unattended-upgrades
-
-# 3. Disable UFW firewall (nftables will be controlled directly)
-sudo ufw disable
-
-# 4. Disable IPv6 on the test interface
-sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1
-sudo sysctl -w net.ipv6.conf.eno1.disable_ipv6=1
-
-# 5. Disable Reverse Path Filtering on the Server (PC 1)
-sudo sysctl -w net.ipv4.conf.all.rp_filter=0
-sudo sysctl -w net.ipv4.conf.eno1.rp_filter=0
+# On PC 2 (Traffic Generator):
+sudo ./src/scripts/pin_core.sh --iface eno1 --core 1 --role generator
 ```
+
+This utility automatically:
+1. Disables `irqbalance` and `unattended-upgrades`.
+2. Sets all 14 cores to the `performance` scaling governor.
+3. Automatically identifies the NIC IRQ for device `0000:80:1f.6` (`eno1`, Intel `e1000e`) and binds it to Core 1 (`echo 1 > /proc/irq/<irq>/smp_affinity_list`).
+4. Enforces role-specific sysctl rules (`rp_filter=0` and `disable_ipv6=1` on Target; `ip_forward=0` and `disable_ipv6=1` on Generator).
+
+---
+
+## 5. Phase B3 Operational Runbook (Offline Lab Bring-Up)
+
+Because the two lab PCs operate without campus network connectivity and without SSH, use this runbook from their physical consoles:
+
+### Step 1: Pre-flight Verification
+1. On PC 1 (Target, `10.99.0.2`):
+   ```bash
+   sudo ./src/scripts/pin_core.sh --iface eno1 --core 1 --role target
+   sudo ./src/dns/start_dns.sh --host --iface eno1
+   ```
+2. On PC 2 (Generator, `10.99.0.1`):
+   ```bash
+   sudo ./src/scripts/pin_core.sh --iface eno1 --core 1 --role generator
+   ping -c 3 10.99.0.2
+   ```
+
+### Step 2: Baseline Saturation Calibration (Find $S$)
+On PC 2 (Generator):
+```bash
+sudo python3 ./src/scripts/calibrate.py --target 10.99.0.2 --iface eno1
+```
+- The harness verifies unflooded resolution (100 QPS).
+- Automatically ramps flood traffic (5k $\to$ 10k $\to$ 20k $\to$ ... pps).
+- Identifies the saturation threshold $S$ where legitimate query success drops below 99%.
+- Verifies that the generator ceiling can sustain $\ge 2.0\times S$.
+- Updates `src/params.yaml` and `src/params.json` with derived rates and levels.
+
+### Step 3: Smoke Runs (B0, B1, B2, X)
+**Option A (Automated with Target Daemon):**
+1. On PC 1 (Target):
+   ```bash
+   sudo python3 ./src/scripts/target_daemon.py --iface eno1
+   ```
+2. On PC 2 (Generator):
+   ```bash
+   sudo ./src/scripts/run_smoke.sh
+   ```
+   *(PC 2 automatically orchestrates all 4 runs across the link, collects telemetry, and outputs summary).*
+
+**Option B (Twin-Console Manual Mode):**
+If not using the daemon:
+1. On PC 2: run `sudo ./src/scripts/run_smoke.sh`.
+2. When prompted for each configuration, execute on PC 1:
+   ```bash
+   sudo ./src/scripts/run_smoke_target.sh --config {B0|B1|B2|X} --duration 14
+   ```
+   and press Enter on PC 2.
+3. Review the final 4-configuration summary table!
 

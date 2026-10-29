@@ -199,3 +199,34 @@ This document logs architectural and design decisions made throughout the lifecy
 - **Context:** Post-processing raw telemetry across dozens of runs requires robust statistical aggregation and multi-layer drop decomposition.
 - **Decision:** Implement `src/scripts/analyze.py` to calculate Median and IQR for legitimate query success %, latency percentiles ($p50, p95, p99$), CPU busy % and softirq %, and multi-tier Drops by Layer (Layer 1 NIC -> Layer 2 Softnet -> Layer 3 Filter -> Layer 4 Socket Buffer). Generates consolidated JSON, CSV, and publication-ready multi-panel figure `results/plots/kavach_dryrun_summary.png` using matplotlib.
 - **Rationale:** Automates objective comparison across all four configurations without manual spreadsheet manipulation.
+
+### ADR-024: Phase B3 Baseline Calibration & Empirical Saturation Point ($S$) Determination
+- **Status:** Accepted & Implemented (29 Oct 2026)
+- **Context:** Rather than assuming theoretical server limits, Phase B3 requires determining the actual unflooded server capacity threshold $S$ under Baseline B0 (No Filter).
+- **Decision:** Implement `src/scripts/calibrate.py` to ramp flood traffic across progressive rate intervals (5k to 150k pps) while concurrently injecting 100 QPS legitimate DNS queries. Identify $S$ as the flood rate where legitimate query success drops below 99.0%. Derive empirical parameters:
+  1. Flood Levels: $0.5\times S$, $1.0\times S$, and $2.0\times S$.
+  2. Per-Source Rate Limit: $5\times$ to $10\times$ legitimate client rate (500 pps).
+  3. Global Rate Limit: $\sim 70\%$ of $S$ ($0.70 \times S$).
+  4. Unified Burst Tolerance: Standardize on a common burst value (20 packets) across all filters.
+  5. Automatically update `src/params.yaml` and `src/params.json`.
+  6. Confirm generator host sustains $\ge 2.0\times S$ via high-speed raw socket ceiling benchmark.
+- **Rationale:** Replaces arbitrary guesswork with rigorous, reproducible empirical measurements grounded in the physical hardware capacity of the Intel Core Ultra 5 245.
+
+### ADR-025: Physical Testbed Dual-Console Orchestration & Target Daemon Synchronization
+- **Status:** Accepted & Implemented (29 Oct 2026)
+- **Context:** In the physical laboratory, PC 1 (Target) and PC 2 (Generator) are directly connected via a dedicated CAT6 cable (`10.99.0.0/24`) without an institutional SSH management network. Operators work via two physical keyboards/monitors.
+- **Decision:** Support dual-operating modes for Phase B3 and Phase B4:
+  1. **Automated Daemon Mode:** Implement `src/scripts/target_daemon.py` running on PC 1 (listening on `10.99.0.2:9999`). PC 2 commands PC 1 via lightweight JSON control packets over the isolated link to reset state, apply configs, and synchronize telemetry collection.
+  2. **Twin-Console Manual Mode:** Implement `src/scripts/run_smoke_target.sh` on PC 1 and interactive prompts in `src/scripts/smoke_runner.py` on PC 2, allowing operators to run tests manually across two screens.
+- **Rationale:** Guarantees complete execution flexibility in offline lab environments without compromising isolation safety or requiring third-party management daemons.
+
+### ADR-026: Single-Core Affinity & Hardware NIC IRQ Pinning Architecture (`IR-PCI-NSI-0000:80:1f.6`)
+- **Status:** Accepted & Implemented (29 Oct 2026)
+- **Context:** To obtain clean per-core capacity benchmarks and eliminate multi-core cache thrashing or IRQ migration jitter, the DNS server process and NIC hardware interrupts must be strictly bound to Core 1.
+- **Decision:** Implement `src/scripts/pin_core.sh` to:
+  1. Disable background jitter sources (`irqbalance`, `unattended-upgrades`).
+  2. Force CPU scaling governor to `performance` on all cores.
+  3. Parse `/proc/interrupts` for device `0000:80:1f.6` (`e1000e` onboard controller) and pin IRQ lines to Core 1 (`echo 1 > /proc/irq/<irq>/smp_affinity_list`).
+  4. Pin NSD or mock DNS daemon to Core 1 via `taskset -c 1`.
+  5. Enforce sysctl rules (`rp_filter=0`, `disable_ipv6=1`, `ip_forward=0`).
+- **Rationale:** Normalizes experimental conditions, guaranteeing that measured saturation and drop rates reflect deterministic single-core throughput.

@@ -56,6 +56,12 @@ kavach/
 │   │   ├── known-issues.md    # Hardware caveats and limitations
 │   │   └── setup.md           # Lab hardware inventory and host tuning
 │   ├── scripts/               # Testbed automation and experiment orchestration
+│   │   ├── pin_core.sh        # Host tuning & hardware NIC IRQ core pinning utility
+│   │   ├── calibrate.py       # Phase B3 unflooded saturation calibration harness
+│   │   ├── target_daemon.py   # Target server network synchronization daemon (PC 1)
+│   │   ├── smoke_runner.py    # Phase B3 smoke test runner across 4 configs (PC 2)
+│   │   ├── run_smoke.sh       # Shell wrapper for smoke test runner (PC 2)
+│   │   ├── run_smoke_target.sh# Target smoke run helper for twin-console mode (PC 1)
 │   │   ├── setup_env.sh       # Automated namespace ('gen' & 'srv') setup
 │   │   ├── teardown_env.sh    # Clean removal of namespaces and virtual links
 │   │   ├── status_env.sh      # Diagnostics and link inspection script

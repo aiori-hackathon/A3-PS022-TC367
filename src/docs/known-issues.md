@@ -27,7 +27,12 @@
 ### Background Service Noise (`unattended-upgrades`, `ufw`)
 - **Observation:** `unattended-upgrades` and `ufw` are active by default on Ubuntu 24.04.
 - **Impact:** Periodic apt background scans and default firewall hooks cause packet drops and spurious CPU spikes.
-- **Enforced Solution:** Disable `unattended-upgrades` and `ufw` on both test machines.
+- **Enforced Solution:** Disable `unattended-upgrades` and `ufw` on both test machines via `pin_core.sh`.
+
+### Offline Execution & Absence of Out-of-Band SSH Management
+- **Observation:** Both machines operate completely offline without active SSH links between them over the isolated link (`10.99.0.0/24`). Operators interact via twin physical keyboards and monitors.
+- **Impact:** Benchmark runners on PC 2 cannot natively trigger remote execution on PC 1 via standard `ssh` commands.
+- **Enforced Solution:** Implemented `src/scripts/target_daemon.py` listening on `10.99.0.2:9999` to accept JSON control instructions across the isolated link, alongside fallback twin-console interactive manual prompts in `src/scripts/smoke_runner.py`.
 
 ---
 

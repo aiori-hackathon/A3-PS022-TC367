@@ -163,21 +163,40 @@ Inject synthetic packets using `bpftool prog run` or Scapy:
 
 ---
 
-## 4. Calibration & Parameter Determination
+## 4. Calibration & Parameter Determination (Phase B3)
 
 Before running comparative benchmark matrices:
-1. **Pin Server Core:** Pin the DNS daemon process and network queue interrupts to a single core:
+1. **Host Tuning & Core Pinning:**
+   Pin DNS daemon process and network queue interrupts to Core 1:
    ```bash
-   sudo taskset -c 1 systemctl restart nsd
+   # On PC 1 (Target):
+   sudo ./src/scripts/pin_core.sh --iface eno1 --core 1 --role target
+   sudo ./src/dns/start_dns.sh --host --iface eno1
+
+   # On PC 2 (Generator):
+   sudo ./src/scripts/pin_core.sh --iface eno1 --core 1 --role generator
    ```
-2. **Find Saturation Point $S$:**
-   Under **B0 (No Filter)**, ramp the flood rate until the legitimate client success rate drops below 99%. Record this rate as $S$ pps.
-3. **Derive Scenario Levels:**
-   - 0.5x $S$, 1.0x $S$, 2.0x $S$
-4. **Set Filter Parameters:**
-   - Global Rate: ~70% of $S$
-   - Per-Source Rate: 5x-10x the legitimate client rate
-   - Record in `params.yaml`.
+2. **Find Saturation Point $S$ (Automated Calibration):**
+   Under **B0 (No Filter)**, ramp the flood rate from PC 2 to identify where legitimate client success drops below 99%:
+   ```bash
+   sudo python3 ./src/scripts/calibrate.py --target 10.99.0.2 --iface eno1
+   ```
+   *Action:* Automatically records $S$ pps, computes derived levels ($0.5\times S, 1.0\times S, 2.0\times S$) and limits (`src_rate` = 500 pps, `glob_rate` = $0.70\times S$, `burst` = 20 pkts), updates `src/params.yaml` / `params.json`, and verifies generator sustains $\ge 2\times S$.
+
+3. **Phase B3 Smoke Test Protocol (4 Configurations):**
+   - **Option A (Automated with Target Daemon):**
+     ```bash
+     # PC 1:
+     sudo python3 ./src/scripts/target_daemon.py --iface eno1
+     # PC 2:
+     sudo ./src/scripts/run_smoke.sh
+     ```
+   - **Option B (Twin-Console Manual Mode):**
+     Execute `sudo ./src/scripts/run_smoke.sh` on PC 2 and follow prompts to execute `sudo ./src/scripts/run_smoke_target.sh --config <C> --duration 14` on PC 1.
+   *Acceptance Criteria:*
+   - All 4 configurations (**B0**, **B1**, **B2**, **X**) complete without crashes.
+   - 4 directories populated under `results/raw/smoke_S1_*`.
+   - `analyze.py` successfully computes metrics and generates summary plot.
 
 ---
 

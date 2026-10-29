@@ -96,15 +96,23 @@ def get_xdp_mode(netns: str, iface: str) -> str:
 
 class Orchestrator:
     def __init__(self, params: Dict[str, Any], dry_run: bool = False, seed: int = 42,
-                 custom_configs: List[str] = None, custom_scenarios: List[str] = None):
+                 custom_configs: List[str] = None, custom_scenarios: List[str] = None,
+                 host_mode: bool = False, iface: Optional[str] = None):
         self.params = params
         self.dry_run = dry_run
         self.seed = seed
+        self.host_mode = host_mode
 
-        self.netns_gen = params.get("network", {}).get("netns_gen", "gen")
-        self.netns_srv = params.get("network", {}).get("netns_srv", "srv")
-        self.iface_gen = params.get("network", {}).get("iface_gen", "vgen")
-        self.iface_srv = params.get("network", {}).get("iface_srv", "vsrv")
+        if host_mode or not Path("/run/netns/srv").exists():
+            self.netns_gen = ""
+            self.netns_srv = ""
+            self.iface_gen = iface or params.get("network", {}).get("iface_gen", "eno1")
+            self.iface_srv = iface or params.get("network", {}).get("iface_srv", "eno1")
+        else:
+            self.netns_gen = params.get("network", {}).get("netns_gen", "gen")
+            self.netns_srv = params.get("network", {}).get("netns_srv", "srv")
+            self.iface_gen = iface or params.get("network", {}).get("iface_gen", "vgen")
+            self.iface_srv = iface or params.get("network", {}).get("iface_srv", "vsrv")
         self.target_ip = params.get("network", {}).get("target_ip", "10.99.0.2")
         self.target_port = params.get("network", {}).get("target_port", 53)
 
@@ -142,28 +150,45 @@ class Orchestrator:
     def reset_state(self):
         """Clean teardown of filters, caches, and daemons between runs."""
         print("  [Reset] Flushing filters, detaching XDP, clearing state...")
-        ns_srv_arg = f"--net=/run/netns/{self.netns_srv}" if Path(f"/run/netns/{self.netns_srv}").exists() else None
+        ns_srv_arg = f"--net=/run/netns/{self.netns_srv}" if (self.netns_srv and Path(f"/run/netns/{self.netns_srv}").exists()) else None
         ctl_prefix = ["sudo", "nsenter", ns_srv_arg] if ns_srv_arg else ["sudo"]
 
-        # 1. Unconditional driver/generic XDP detach via iproute2
-        run_cmd(["sudo", "ip", "netns", "exec", self.netns_srv, "ip", "link", "set", "dev", self.iface_srv, "xdpgeneric", "off"], check=False)
-        run_cmd(["sudo", "ip", "netns", "exec", self.netns_srv, "ip", "link", "set", "dev", self.iface_srv, "xdp", "off"], check=False)
+        if self.netns_srv:
+            # 1. Unconditional driver/generic XDP detach via iproute2
+            run_cmd(["sudo", "ip", "netns", "exec", self.netns_srv, "ip", "link", "set", "dev", self.iface_srv, "xdpgeneric", "off"], check=False)
+            run_cmd(["sudo", "ip", "netns", "exec", self.netns_srv, "ip", "link", "set", "dev", self.iface_srv, "xdp", "off"], check=False)
 
-        # 2. Controller cleanup
-        run_cmd(ctl_prefix + ["python3", str(XDP_DIR / "kavach_ctl.py"), "detach", "--iface", self.iface_srv], check=False)
-        run_cmd(ctl_prefix + ["python3", str(XDP_DIR / "kavach_ctl.py"), "unload"], check=False)
-        run_cmd(["sudo", "rm", "-rf", "/sys/fs/bpf/kavach"], check=False)
-        run_cmd(["sudo", "rm", "-f", "/run/kavach/state.json"], check=False)
+            # 2. Controller cleanup
+            run_cmd(ctl_prefix + ["python3", str(XDP_DIR / "kavach_ctl.py"), "detach", "--iface", self.iface_srv], check=False)
+            run_cmd(ctl_prefix + ["python3", str(XDP_DIR / "kavach_ctl.py"), "unload"], check=False)
+            run_cmd(["sudo", "rm", "-rf", "/sys/fs/bpf/kavach"], check=False)
+            run_cmd(["sudo", "rm", "-f", "/run/kavach/state.json"], check=False)
 
-        # 3. Flush nftables in srv namespace
-        run_cmd(["sudo", "ip", "netns", "exec", self.netns_srv, "nft", "flush", "ruleset"], check=False)
+            # 3. Flush nftables in srv namespace
+            run_cmd(["sudo", "ip", "netns", "exec", self.netns_srv, "nft", "flush", "ruleset"], check=False)
 
-        # 4. Flush neighbor cache and conntrack
-        run_cmd(["sudo", "ip", "netns", "exec", self.netns_srv, "ip", "neigh", "flush", "all"], check=False)
-        run_cmd(["sudo", "ip", "netns", "exec", self.netns_gen, "ip", "neigh", "flush", "all"], check=False)
+            # 4. Flush neighbor cache and conntrack
+            run_cmd(["sudo", "ip", "netns", "exec", self.netns_srv, "ip", "neigh", "flush", "all"], check=False)
+            if self.netns_gen:
+                run_cmd(["sudo", "ip", "netns", "exec", self.netns_gen, "ip", "neigh", "flush", "all"], check=False)
 
-        # 5. Restart DNS server in srv namespace (Core 1, RRL off)
-        run_cmd(["sudo", str(DNS_DIR / "start_dns.sh")], check=True)
+            # 5. Restart DNS server in srv namespace (Core 1, RRL off)
+            run_cmd(["sudo", str(DNS_DIR / "start_dns.sh"), "--netns", self.netns_srv, "--iface", self.iface_srv], check=True)
+        else:
+            # Host Mode
+            run_cmd(["sudo", "ip", "link", "set", "dev", self.iface_srv, "xdpgeneric", "off"], check=False)
+            run_cmd(["sudo", "ip", "link", "set", "dev", self.iface_srv, "xdp", "off"], check=False)
+
+            run_cmd(["sudo", "python3", str(XDP_DIR / "kavach_ctl.py"), "detach", "--iface", self.iface_srv], check=False)
+            run_cmd(["sudo", "python3", str(XDP_DIR / "kavach_ctl.py"), "unload"], check=False)
+            run_cmd(["sudo", "rm", "-rf", "/sys/fs/bpf/kavach"], check=False)
+            run_cmd(["sudo", "rm", "-f", "/run/kavach/state.json"], check=False)
+
+            run_cmd(["sudo", "nft", "flush", "ruleset"], check=False)
+            run_cmd(["sudo", "ip", "neigh", "flush", "all"], check=False)
+
+            run_cmd(["sudo", str(DNS_DIR / "start_dns.sh"), "--host", "--iface", self.iface_srv], check=True)
+
         time.sleep(0.5)
 
     def apply_config(self, config: str):
@@ -190,7 +215,7 @@ class Orchestrator:
             ])
         elif config == "X":
             # Kavach XDP program
-            ns_srv_arg = f"--net=/run/netns/{self.netns_srv}" if Path(f"/run/netns/{self.netns_srv}").exists() else None
+            ns_srv_arg = f"--net=/run/netns/{self.netns_srv}" if (self.netns_srv and Path(f"/run/netns/{self.netns_srv}").exists()) else None
             ctl_prefix = ["sudo", "nsenter", ns_srv_arg] if ns_srv_arg else ["sudo"]
 
             run_cmd(ctl_prefix + ["python3", str(XDP_DIR / "kavach_ctl.py"), "load"])
@@ -199,10 +224,19 @@ class Orchestrator:
                 "--src-rate", str(self.src_rate), "--src-burst", str(self.src_burst),
                 "--glob-rate", str(self.glob_rate), "--glob-burst", str(self.glob_burst)
             ])
-            run_cmd(ctl_prefix + [
-                "python3", str(XDP_DIR / "kavach_ctl.py"), "attach", "generic",
+            # Attempt native driver attach first, fall back to generic
+            res_native = run_cmd(ctl_prefix + [
+                "python3", str(XDP_DIR / "kavach_ctl.py"), "attach", "native",
                 "--iface", self.iface_srv, "--watchdog-minutes", "5"
-            ])
+            ], check=False)
+            if res_native.returncode == 0:
+                print("  [XDP] Successfully attached native driver mode (xdpdrv).")
+            else:
+                print(f"  [XDP] Native attach failed; falling back to generic mode (xdpgeneric)...")
+                run_cmd(ctl_prefix + [
+                    "python3", str(XDP_DIR / "kavach_ctl.py"), "attach", "generic",
+                    "--iface", self.iface_srv, "--watchdog-minutes", "5"
+                ])
         else:
             raise ValueError(f"Unknown configuration: {config}")
 
@@ -227,9 +261,9 @@ class Orchestrator:
 
         legit_csv = run_dir / "legit_client.csv"
 
-        # 1. Start Telemetry Collector inside srv network namespace via nsenter (preserves host bpffs access)
-        collect_cmd = [
-            "sudo", "nsenter", f"--net=/run/netns/{self.netns_srv}",
+        # 1. Start Telemetry Collector
+        collect_prefix = ["sudo", "nsenter", f"--net=/run/netns/{self.netns_srv}"] if self.netns_srv else ["sudo"]
+        collect_cmd = collect_prefix + [
             "python3", str(SCRIPTS_DIR / "collect_metrics.py"),
             "-d", str(total_collect_duration),
             "-o", str(run_dir),
@@ -239,9 +273,9 @@ class Orchestrator:
         ]
         p_collect = subprocess.Popen(collect_cmd)
 
-        # 2. Start Legitimate Client inside gen namespace (100 QPS)
-        legit_cmd = [
-            "sudo", "ip", "netns", "exec", self.netns_gen,
+        # 2. Start Legitimate Client (100 QPS)
+        gen_prefix = ["sudo", "ip", "netns", "exec", self.netns_gen] if self.netns_gen else ["sudo"]
+        legit_cmd = gen_prefix + [
             "python3", str(TRAFFIC_DIR / "legit_client.py"),
             "--server", self.target_ip,
             "--source-ip", "10.99.0.1",
@@ -255,15 +289,14 @@ class Orchestrator:
         print(f"  [Warmup] Running legitimate client only for {self.warmup_s}s...")
         time.sleep(self.warmup_s)
 
-        # 4. Measurement Window: Start Flood Traffic inside gen namespace
+        # 4. Measurement Window: Start Flood Traffic
         print(f"  [Window] Launching Flood Scenario {scenario} at {flood_rate} pps for {self.window_s}s...")
         kavach_gen = TRAFFIC_DIR / "kavach_gen"
         if not kavach_gen.is_file():
             run_cmd(["make", "-C", str(TRAFFIC_DIR)])
 
         if scenario == "S1":
-            flood_cmd = [
-                "sudo", "ip", "netns", "exec", self.netns_gen,
+            flood_cmd = gen_prefix + [
                 str(kavach_gen), "s1",
                 "--target", self.target_ip,
                 "--source", "198.18.0.10",
@@ -271,8 +304,7 @@ class Orchestrator:
                 "--duration", str(self.window_s)
             ]
         elif scenario == "S2":
-            flood_cmd = [
-                "sudo", "ip", "netns", "exec", self.netns_gen,
+            flood_cmd = gen_prefix + [
                 str(kavach_gen), "s2",
                 "--target", self.target_ip,
                 "--sources", "1000",
@@ -280,8 +312,7 @@ class Orchestrator:
                 "--duration", str(self.window_s)
             ]
         elif scenario == "S3":
-            flood_cmd = [
-                "sudo", "ip", "netns", "exec", self.netns_gen,
+            flood_cmd = gen_prefix + [
                 str(kavach_gen), "s3",
                 "--target", self.target_ip,
                 "--source", "198.18.0.10",
@@ -382,6 +413,8 @@ def main():
     parser = argparse.ArgumentParser(description="Kavach Experiment Orchestrator v1")
     parser.add_argument("--params", default=str(SRC_DIR / "params.yaml"), help="Path to params.yaml or params.json")
     parser.add_argument("--dry-run", action="store_true", help="Execute rapid dry run with shortened windows")
+    parser.add_argument("--host", action="store_true", help="Execute on physical host network stack without namespaces")
+    parser.add_argument("--iface", help="Physical interface name (e.g. eno1)")
     parser.add_argument("--seed", type=int, default=42, help="Randomization seed (default: 42)")
     parser.add_argument("--configs", help="Comma-separated configs: B0,B1,B2,X")
     parser.add_argument("--scenarios", help="Comma-separated scenarios: S1,S2,S3")
@@ -398,6 +431,8 @@ def main():
         seed=args.seed,
         custom_configs=custom_configs,
         custom_scenarios=custom_scenarios,
+        host_mode=args.host,
+        iface=args.iface
     )
     orchestrator.run_matrix()
 
