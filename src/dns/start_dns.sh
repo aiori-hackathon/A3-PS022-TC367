@@ -28,11 +28,12 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         --host|--no-netns) USE_HOST=true; NS_SRV=""; shift ;;
         --netns) NS_SRV="$2"; USE_HOST=false; shift 2 ;;
+        --iface) shift 2 ;; # Optional interface descriptor for parity with testbed scripts
         --ip) TARGET_IP="$2"; shift 2 ;;
         --port) TARGET_PORT="$2"; shift 2 ;;
         --core) CORE_PIN="$2"; shift 2 ;;
         -h|--help)
-            echo "Usage: $0 [--host] [--netns <name>] [--ip <listen_ip>] [--port <port>] [--core <cpu>]"
+            echo "Usage: $0 [--host] [--iface <dev>] [--netns <name>] [--ip <listen_ip>] [--port <port>] [--core <cpu>]"
             exit 0
             ;;
         *) echo "Unknown option: $1"; exit 1 ;;
