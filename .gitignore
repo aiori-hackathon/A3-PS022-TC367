@@ -27,6 +27,8 @@ env/
 *.stdout
 *.log
 *.xfrd
+*.tmp
+*.temp
 /tmp/
 
 # High-volume packet capture traces
@@ -42,11 +44,32 @@ results/raw/*
 # Evidence local folders
 docs/person-a/evidence/local-*/
 
-# OS and Editor specific files
+# Temporary USB pendrive / staging directories
+resultsL*/
+results_l*/
+results_old*/
+results_temp*/
+results_pendrive*/
+pendrive*/
+
+# OS, Pendrive, and Editor specific files
 .DS_Store
 Thumbs.db
+*.bak
+*.bak.*
 *.swp
 *.swo
 *~
+*#
+.#*
+*.orig
+*.rej
+*.part
+*.crdownload
+.Spotlight-V100
+.Trashes
+._*
+.fseventsd/
+System Volume Information/
 .vscode/
 .idea/

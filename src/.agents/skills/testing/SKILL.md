@@ -163,40 +163,86 @@ Inject synthetic packets using `bpftool prog run` or Scapy:
 
 ---
 
-## 4. Calibration & Parameter Determination (Phase B3)
+## 4. Calibration & Parameter Determination (Phase B3 Completed)
 
-Before running comparative benchmark matrices:
-1. **Host Tuning & Core Pinning:**
-   Pin DNS daemon process and network queue interrupts to Core 1:
+Empirical calibration on the twin HP ProDesk 4 workstations confirmed:
+- **Saturation Point $S$:** $100,000$ pps (under Baseline B0, legitimate query success collapsed to $86.92\%$ and median latency surged $27\times$ to $14.055$ ms).
+- **Physical Generator Ceiling:** Single-threaded raw socket (`kavach_gen`) reaches $198,935$ pps across the CAT6 link on `eno1`. Over-subscribing beyond 200k (e.g. 500k pps) creates kernel socket ring-lock contention, throttling output to $\sim 125,000$ pps.
+- **Derived Levels:**
+  - $0.5\times S = 50,000$ pps
+  - $1.0\times S = 100,000$ pps
+  - $2.0\times S = 200,000$ pps
+- **Rate Limiters:** `src_rate = 500` pps, `glob_rate = 70,000` pps, `burst = 20` pkts.
+- **Driver Attach Mode:** Intel `e1000e` attaches in `xdpgeneric` (generic mode) on Linux kernel `6.14.0-1020-oem`.
+- **Smoke Test Results (S1 @ 100k pps):**
+  - **B0 (No Filter):** $86.92\%$ success, $p50 = 14.055$ ms, $p95 = 28.461$ ms (severe queue drop).
+  - **B1 (nftables raw):** $100.00\%$ success, $p50 = 0.480$ ms, $p95 = 1.416$ ms.
+  - **B2 (nftables netdev):** $100.00\%$ success, $p50 = 0.473$ ms, $p95 = 1.359$ ms.
+  - **X (Kavach XDP):** $100.00\%$ success, $p50 = 0.409$ ms (15% faster than B1/B2), $p95 = 1.434$ ms.
+
+### 4.1 Host Tuning & Core Pinning:
+Pin DNS daemon process and network queue interrupts to Core 1:
+```bash
+# On PC 1 (Target):
+sudo ./src/scripts/pin_core.sh --iface eno1 --core 1 --role target
+sudo ./src/dns/start_dns.sh --host --iface eno1
+
+# On PC 2 (Generator):
+sudo ./src/scripts/pin_core.sh --iface eno1 --core 1 --role generator
+```
+
+### 4.2 Automated Calibration Command:
+```bash
+sudo python3 ./src/scripts/calibrate.py --target 10.99.0.2 --iface eno1
+```
+
+### 4.3 Phase B3 Smoke Test Protocol (4 Configurations):
+- **Option A (Automated with Target Daemon):**
+  ```bash
+  # PC 1:
+  sudo python3 ./src/scripts/target_daemon.py --iface eno1
+  # PC 2:
+  sudo ./src/scripts/run_smoke.sh
+  ```
+- **Option B (Twin-Console Manual Mode):**
+  Execute `sudo ./src/scripts/run_smoke.sh` on PC 2 and follow prompts to execute `sudo ./src/scripts/run_smoke_target.sh --config <C> --duration 14` on PC 1.
+
+---
+
+## 5. Benchmark Matrix Execution Protocol (Phase B4)
+
+Phase B4 executes the full comparative benchmark matrix on the physical lab testbed.
+
+### 5.1 Matrix Tier Options & Time Budgets
+Per `src/AGENTS.md` Section 11 & 14:
+- **Target Tier (Recommended, 108 runs):**
+  - 4 configs (B0, B1, B2, X) $\times$ 3 scenarios (S1, S2, S3) $\times$ 3 levels (0.5x, 1.0x, 2.0x) $\times$ 3 reps.
+  - Duration: $108 \times 100\text{s} \approx 3.0$ hours.
+  - Command: `sudo python3 ./src/scripts/orchestrator.py --target 10.99.0.2 --iface eno1 --mode daemon`
+- **Fallback Tier (Drop B1, 81 runs):**
+  - 3 configs (B0, B2, X) $\times$ 3 scenarios $\times$ 3 levels $\times$ 3 reps.
+  - Duration: $81 \times 100\text{s} \approx 2.3$ hours.
+  - Command: `sudo python3 ./src/scripts/orchestrator.py --target 10.99.0.2 --iface eno1 --configs B0 B2 X --mode daemon`
+- **Minimum Viable Tier (Emergency Time Crunch, 36 runs):**
+  - 3 configs (B0, B2, X) $\times$ 3 scenarios $\times$ 2 levels (1.0x, 2.0x) $\times$ 2 reps.
+  - Duration: $36 \times 100\text{s} \approx 1.0$ hour.
+  - Command: `sudo python3 ./src/scripts/orchestrator.py --target 10.99.0.2 --iface eno1 --configs B0 B2 X --levels 1.0 2.0 --reps 2 --mode daemon`
+
+### 5.2 Offline Lab Execution Procedure
+1. **Target DUT (PC 1):**
    ```bash
-   # On PC 1 (Target):
    sudo ./src/scripts/pin_core.sh --iface eno1 --core 1 --role target
-   sudo ./src/dns/start_dns.sh --host --iface eno1
-
-   # On PC 2 (Generator):
-   sudo ./src/scripts/pin_core.sh --iface eno1 --core 1 --role generator
+   sudo python3 ./src/scripts/target_daemon.py --iface eno1
    ```
-2. **Find Saturation Point $S$ (Automated Calibration):**
-   Under **B0 (No Filter)**, ramp the flood rate from PC 2 to identify where legitimate client success drops below 99%:
+2. **Generator Host (PC 2):**
    ```bash
-   sudo python3 ./src/scripts/calibrate.py --target 10.99.0.2 --iface eno1
+   sudo ./src/scripts/pin_core.sh --iface eno1 --core 1 --role generator
+   sudo python3 ./src/scripts/orchestrator.py --target 10.99.0.2 --iface eno1 --mode daemon
    ```
-   *Action:* Automatically records $S$ pps, computes derived levels ($0.5\times S, 1.0\times S, 2.0\times S$) and limits (`src_rate` = 500 pps, `glob_rate` = $0.70\times S$, `burst` = 20 pkts), updates `src/params.yaml` / `params.json`, and verifies generator sustains $\ge 2\times S$.
-
-3. **Phase B3 Smoke Test Protocol (4 Configurations):**
-   - **Option A (Automated with Target Daemon):**
-     ```bash
-     # PC 1:
-     sudo python3 ./src/scripts/target_daemon.py --iface eno1
-     # PC 2:
-     sudo ./src/scripts/run_smoke.sh
-     ```
-   - **Option B (Twin-Console Manual Mode):**
-     Execute `sudo ./src/scripts/run_smoke.sh` on PC 2 and follow prompts to execute `sudo ./src/scripts/run_smoke_target.sh --config <C> --duration 14` on PC 1.
-   *Acceptance Criteria:*
-   - All 4 configurations (**B0**, **B1**, **B2**, **X**) complete without crashes.
-   - 4 directories populated under `results/raw/smoke_S1_*`.
-   - `analyze.py` successfully computes metrics and generates summary plot.
+3. **Data Verification & Freeze:**
+   - Verify all runs populated in `results/raw/<scenario>_<config>_<level>_<rep>/`.
+   - Verify SHA-256 checksums of raw CSVs: `sha256sum results/raw/*/*.csv > results/raw/checksums.sha256`.
+   - Freeze raw data by Thursday 12:00.
 
 ---
 

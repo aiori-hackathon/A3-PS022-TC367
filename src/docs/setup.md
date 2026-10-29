@@ -148,3 +148,53 @@ If not using the daemon:
    and press Enter on PC 2.
 3. Review the final 4-configuration summary table!
 
+---
+
+## 6. Phase B4 Main Benchmark Matrix Execution
+
+### Step 1: Pre-run Verification
+Ensure both hosts are tuned to Core 1:
+```bash
+# PC 1 (Target):
+sudo ./src/scripts/pin_core.sh --iface eno1 --core 1 --role target
+# PC 2 (Generator):
+sudo ./src/scripts/pin_core.sh --iface eno1 --core 1 --role generator
+```
+
+### Step 2: Start Target Daemon on PC 1
+```bash
+sudo python3 ./src/scripts/target_daemon.py --iface eno1
+```
+*(Leave running in Console 1 of PC 1; it resets state and attaches filters automatically for each run).*
+
+### Step 3: Launch Orchestrator on PC 2
+Choose the matrix tier according to time constraints:
+
+- **Target Tier (Recommended, 108 runs, ~3.0 hrs):**
+  ```bash
+  sudo python3 ./src/scripts/orchestrator.py --target 10.99.0.2 --iface eno1 --mode daemon
+  ```
+- **Fallback Tier (Drop B1, 81 runs, ~2.3 hrs):**
+  ```bash
+  sudo python3 ./src/scripts/orchestrator.py --target 10.99.0.2 --iface eno1 --configs B0 B2 X --mode daemon
+  ```
+- **Minimum Viable Tier (Emergency, 36 runs, ~1.0 hr):**
+  ```bash
+  sudo python3 ./src/scripts/orchestrator.py --target 10.99.0.2 --iface eno1 --configs B0 B2 X --levels 1.0 2.0 --reps 2 --mode daemon
+  ```
+
+### Step 4: Data Verification & USB Extraction
+1. Verify raw runs are populated:
+   ```bash
+   ls results/raw/
+   ```
+2. Generate SHA-256 checksums:
+   ```bash
+   sha256sum results/raw/*/*.csv > results/raw/checksums.sha256
+   ```
+3. Run statistical analysis:
+   ```bash
+   python3 ./src/scripts/analyze.py --input-dir results/raw/ --output-dir results/
+   ```
+4. Copy `results/raw/`, `results/analysis_summary.json`, `results/analysis_table.csv`, and `results/plots/` to USB pendrive for ingestion.
+

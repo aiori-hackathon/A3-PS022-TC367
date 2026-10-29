@@ -86,10 +86,7 @@ The lab PCs use the Intel `e1000e` Gigabit driver on Linux kernel `6.14.0-1020-o
   ip link show dev eno1
   # Look for "xdp" (native xdpdrv) or "xdpgeneric" (generic mode)
   ```
-- If native attach (`xdpdrv`) fails with `Operation not supported` or MTU errors:
-  - Verify MTU is standard 1500: `ip link set dev eno1 mtu 1500`
-  - Check `dmesg -T | grep -E 'e1000e|xdp'` for driver ring buffer allocation rejections.
-  - Fall back to generic mode if necessary: `ip link set dev eno1 xdpgeneric obj xdp/dns_ratelimit.bpf.o sec xdp`
+- **Lab Finding:** On Linux `6.14.0-1020-oem`, native attach (`xdpdrv`) is rejected with `Operation not supported` by the `e1000e` driver. The system attaches in `xdpgeneric` mode. This satisfies PS-022 Item 6 ("Use an XDP-capable kernel/NIC, or document generic-mode setup").
 - Verify CPU frequency scaling is pinned:
   ```bash
   cat /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
@@ -123,6 +120,24 @@ The lab PCs use the Intel `e1000e` Gigabit driver on Linux kernel `6.14.0-1020-o
   ```bash
   mpstat -P ALL 1
   ```
+
+### 4.4 Generator Socket Ring-Lock Contention
+- **Symptom:** Generator effective transmit rate throttles down from ~200k pps to ~125k pps when setting target rate to 500k pps.
+- **Cause:** Single-threaded raw socket (`SOCK_RAW` / `IP_HDRINCL`) ring-buffer syscall lock contention under excessive request rates.
+- **Fix:** Keep generator rates within physical link headroom ($\le 200,000$ pps for $2.0\times S$).
+
+### 4.5 Clean Interface Recovery After Manual Interrupt (Ctrl+C)
+If `target_daemon.py`, a smoke run, or the orchestrator is interrupted with `Ctrl+C`, the test interface `eno1` may retain residual XDP programs or nftables rules, causing `dig` to report `no servers could be reached`:
+```bash
+# On PC 1 (Target):
+sudo ./src/baselines/none.sh
+sudo ./src/dns/start_dns.sh --host --iface eno1
+# Test resolution locally:
+dig @10.99.0.2 www.lab.test +short
+```
+
+### 4.6 Legitimate Client Response Status Validation
+`legit_client.py` reports `status: ANSWERED` (with `rcode: 0` / `NOERROR`) when resolving queries. Any parsing scripts must accept `status in ["ANSWERED", "SUCCESS"] or rcode in ["0", "NOERROR"]` rather than strictly matching `"SUCCESS"`.
 
 ---
 

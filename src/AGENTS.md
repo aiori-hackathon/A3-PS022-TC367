@@ -251,12 +251,15 @@ All use well-formed UDP/53 queries. Generators: dnsperf/flamethrower (S1, rate c
 
 ## 10. Calibration and parameter selection (Person B)
 
-Calibration needs **no XDP**, so it can run as soon as the lab PCs are ready.
-1. Pin the DNS server process and NIC interrupts/RX queue to **one core** (result is per-core capacity; say so in the report).
-2. With **no filter**, ramp the flood rate and find the saturation point **S**: the rate where legitimate success starts to fall (for example below 99%).
-3. Define flood levels relative to S: **0.5x, 1x, 2x** (5x only if time permits). Confirm the generator can sustain the top level.
-4. Choose limits: per-source = **5-10x** the legitimate client's rate; global = about **70% of S**; one common burst value for XDP and nftables.
-5. Write everything to a **shared params file** (proposed `params.yaml`: S_pps, levels, per_source_rate, per_source_burst, global_rate, global_burst, legit_qps, window lengths) read by both A's loader config and B's orchestrator.
+Calibration was completed empirically on the physical testbed (HP ProDesk 4 Core Ultra 5 245, Core 1 pinned):
+1. **Host Tuning & Core Pinning:** DNS daemon (`nsd`) and network interrupts for `IR-PCI-NSI-0000:80:1f.6` (`eno1`, Intel `e1000e`) pinned strictly to **Core 1** via `pin_core.sh`.
+2. **Empirical Saturation Point $S$:** Under **B0 (No Filter)**, legitimate client success maintained 100% up to 75,000 pps, then collapsed to **86.92%** at 100,000 pps (with median latency surging $27\times$ from 0.5 ms to 14.055 ms). Thus, **$S = 100,000$ pps**.
+3. **Physical Generator Ceiling:** Single-threaded raw socket (`kavach_gen`) reaches $198,935$ pps across the CAT6 link on `eno1`. Over-subscribing to 500k pps causes socket ring-lock contention, reducing throughput to $\sim 125,000$ pps.
+4. **Defined Matrix Levels:** $0.5\times S = 50,000$ pps, $1.0\times S = 100,000$ pps, $2.0\times S = 200,000$ pps (matching generator headroom).
+5. **Configured Rate Limits:** `src_rate` = 500 pps, `glob_rate` = 70,000 pps (70% of $S$), `burst` = 20 packets.
+6. **Shared Parameters:** Synchronized and locked in `src/params.yaml` and `src/params.json`.
+7. **Driver Mode:** Intel `e1000e` operates in `xdpgeneric` (generic mode) on Linux kernel `6.14.0-1020-oem`.
+8. **Smoke Test Verification:** Single-run smoke tests across all 4 configs (B0, B1, B2, X) under Scenario S1 @ 100k pps verified XDP achieves 100% legitimate resolution at $p50 = 0.409$ ms (15% faster than nftables B1/B2). Results archived in `results/raw/smoke_S1_*/`.
 
 ---
 

@@ -51,10 +51,24 @@
 
 ## 3. Driver & Operating Mode Differences
 
-### Intel `e1000e` Driver & Native XDP (`xdpdrv`)
-- **Context:** Both lab machines use onboard Intel gigabit interfaces driven by `e1000e`.
-- **Behavior:** The Linux `e1000e` driver has native XDP support, but may enforce constraints on MTU (typically must be <= 1500) and packet buffer allocations.
-- **Fallback:** If `xdpdrv` fails to attach or drops the link, the loader must fall back to `xdpgeneric`, logging the generic mode status.
+### Intel `e1000e` Driver & Native XDP (`xdpdrv`) Unsupported on Kernel 6.14 OEM
+- **Context:** Both lab machines use onboard Intel gigabit interfaces driven by `e1000e` (`IR-PCI-NSI-0000:80:1f.6`).
+- **Empirical Observation:** When attempting native XDP attachment (`xdpdrv` or `kavach_ctl.py attach --mode native`), the kernel rejects attachment with `Operation not supported` (errno 95).
+- **Enforced Solution:** Kavach automatically falls back to generic XDP (`xdpgeneric`).
+- **PS-022 Compliance:** Item 6 explicitly requires teams to *"Use an XDP-capable kernel/NIC, or document generic-mode setup"*. The project fully documents generic mode operation and reports all metrics accordingly.
+
+### Generator Raw Socket Syscall Saturation & Ring Contention
+- **Observation:** In generator ceiling tests using raw sockets (`SOCK_RAW`, `IP_HDRINCL`), a single Core 1 thread reaches a transmission ceiling of $\sim 198,935$ pps across the CAT6 link.
+- **Anomaly at Extreme Rates:** Attempting to push 500,000 pps causes internal socket ring-buffer lock contention, degrading effective transmission to $\sim 125,000$ pps.
+- **Solution:** Saturation point $S$ is calibrated at $100,000$ pps, ensuring the $2.0\times S$ matrix level ($200,000$ pps) fits cleanly within generator headroom.
+
+### Target Daemon Lifecycle & Manual Interrupt Recovery
+- **Observation:** `target_daemon.py` is a persistent TCP listener on port 9999. Terminating with `Ctrl+C` or interrupting an active test can leave XDP programs or nftables rules attached to `eno1`, causing `dig` to report `no servers could be reached`.
+- **Recovery:** Run `sudo ./src/baselines/none.sh && sudo ./src/dns/start_dns.sh --host --iface eno1` to restore a clean baseline interface.
+
+### Legit Client Query Resolution Status Parsing
+- **Observation:** `legit_client.py` writes `status: ANSWERED` with `rcode: 0` (`NOERROR`) rather than `"SUCCESS"`.
+- **Resolution:** All validation parsers (`calibrate.py`, `smoke_runner.py`, `analyze.py`) accept both `"ANSWERED"` and `"SUCCESS"` / `rcode == "NOERROR"`.
 
 ### Veth Namespace Development Limitations
 - **Issue:** Network namespaces connected via `veth` pairs share the host CPU and kernel scheduler.
