@@ -31,6 +31,25 @@ MAPS = {'counters': ('percpu_array', 4, 8, 14),
         'global_tat': ('array', 4, 8, 1)}
 MODES = {'generic': 2, 'native': 4}
 
+def find_bpftool():
+    if "BPFTOOL" in os.environ and os.path.isfile(os.environ["BPFTOOL"]):
+        return os.environ["BPFTOOL"]
+    uname_r = os.uname().release
+    kernel_bpftool = f"/usr/lib/linux-tools/{uname_r}/bpftool"
+    if os.path.isfile(kernel_bpftool):
+        return kernel_bpftool
+    import glob
+    matches = glob.glob("/usr/lib/linux-tools/*/bpftool")
+    if matches:
+        return sorted(matches)[-1]
+    import shutil
+    p = shutil.which("bpftool")
+    if p:
+        return p
+    return "bpftool"
+
+BPFTOOL_BIN = find_bpftool()
+
 def command(args, diagnostics=False):
     result = subprocess.run(args, capture_output=True, text=True)
     if diagnostics and result.stderr:
@@ -40,7 +59,7 @@ def command(args, diagnostics=False):
     return result.stdout
 
 def bpf(*args):
-    return json.loads(command(['/usr/lib/linux-tools/6.8.0-147-generic/bpftool', '-j', *map(str, args)]))
+    return json.loads(command([BPFTOOL_BIN, '-j', *map(str, args)]))
 
 def one(value):
     if isinstance(value, list):
@@ -209,7 +228,7 @@ def cmd_load(args):
         PIN.mkdir()
         try:
             # Load only; diagnostics remain on stderr via the command wrapper.
-            command(['/usr/lib/linux-tools/6.8.0-147-generic/bpftool', '-d', 'prog', 'load', str(obj), str(PIN / 'prog'),
+            command([BPFTOOL_BIN, '-d', 'prog', 'load', str(obj), str(PIN / 'prog'),
                      'type', 'xdp', 'pinmaps', str(PIN)], diagnostics=True)
             info = check_maps()
         except Exception:
@@ -227,7 +246,7 @@ def cmd_config(args):
         info = check_maps()
         if attachments(XDP(), info['id']):
             raise RuntimeError('Detach before changing config; stop any concurrent prog-run tests too')
-        command(['/usr/lib/linux-tools/6.8.0-147-generic/bpftool', 'map', 'update', 'pinned', str(PIN / 'kavach_cfg'),
+        command([BPFTOOL_BIN, 'map', 'update', 'pinned', str(PIN / 'kavach_cfg'),
                  'key', 'hex', '00', '00', '00', '00', 'value', 'hex',
                  *[f'{byte:02x}' for byte in value]])
     print('Config written. Reload before an independent test to reset limiter state.', file=sys.stderr)

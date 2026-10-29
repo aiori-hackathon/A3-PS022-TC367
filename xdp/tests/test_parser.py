@@ -16,9 +16,16 @@ NAMES = (
     "drop_busy", "drop_state",
 )
 
+from pathlib import Path
+import sys
+
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE.parent))
+from kavach_ctl import BPFTOOL_BIN
+
 def bpf(*args):
     result = subprocess.run(
-        ["/usr/lib/linux-tools/6.8.0-147-generic/bpftool", "-j", *args], capture_output=True, text=True
+        [BPFTOOL_BIN, "-j", *args], capture_output=True, text=True
     )
     if result.returncode:
         raise RuntimeError(result.stderr.strip() or result.stdout.strip())

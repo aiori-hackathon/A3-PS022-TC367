@@ -118,7 +118,8 @@ int kavach_xdp(struct xdp_md *ctx)
     if (udp->dest != bpf_htons(53))
         return finish(C_PASS_NON53, XDP_PASS);
 
-    __u32 udp_len = bpf_ntohs(udp->len);
+    __u64 udp_len = bpf_ntohs(udp->len);
+    asm volatile ("%[len] &= 0xffff\n\t" : [len] "+r"(udp_len));
     if (udp_len < sizeof(*udp))
         return finish(C_DROP_BAD_UDP, XDP_DROP);
     if (udp_len < sizeof(*udp) + 12)
@@ -133,7 +134,7 @@ int kavach_xdp(struct xdp_md *ctx)
         (void *)(udp + 1) + 12 > data_end)
         return finish(C_DROP_SHORT_DNS, XDP_DROP);
 
-    if (!(frag & 0x2000) && (void *)udp + udp_len > data_end)
+    if (!(frag & 0x2000) && (void *)udp + (udp_len & 0xffff) > data_end)
         return finish(C_DROP_BAD_UDP, XDP_DROP);
 
     __u32 zero = 0;
