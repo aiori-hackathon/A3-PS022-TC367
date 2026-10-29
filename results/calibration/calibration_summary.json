@@ -1,0 +1,107 @@
+{
+  "timestamp": 1793271799.0743213,
+  "target": "10.99.0.2",
+  "S_pps": 100000,
+  "threshold_pct": 99.0,
+  "history": [
+    {
+      "rate_pps": 5000,
+      "sent": 1000,
+      "answered": 1000,
+      "success_pct": 100.0,
+      "p50_ms": 0.626,
+      "p95_ms": 0.902,
+      "status": "OK"
+    },
+    {
+      "rate_pps": 10000,
+      "sent": 1000,
+      "answered": 1000,
+      "success_pct": 100.0,
+      "p50_ms": 0.52,
+      "p95_ms": 0.776,
+      "status": "OK"
+    },
+    {
+      "rate_pps": 15000,
+      "sent": 1000,
+      "answered": 1000,
+      "success_pct": 100.0,
+      "p50_ms": 0.581,
+      "p95_ms": 0.794,
+      "status": "OK"
+    },
+    {
+      "rate_pps": 20000,
+      "sent": 1000,
+      "answered": 1000,
+      "success_pct": 100.0,
+      "p50_ms": 0.471,
+      "p95_ms": 0.655,
+      "status": "OK"
+    },
+    {
+      "rate_pps": 25000,
+      "sent": 1000,
+      "answered": 1000,
+      "success_pct": 100.0,
+      "p50_ms": 0.548,
+      "p95_ms": 0.724,
+      "status": "OK"
+    },
+    {
+      "rate_pps": 30000,
+      "sent": 1000,
+      "answered": 1000,
+      "success_pct": 100.0,
+      "p50_ms": 0.562,
+      "p95_ms": 0.727,
+      "status": "OK"
+    },
+    {
+      "rate_pps": 40000,
+      "sent": 1000,
+      "answered": 1000,
+      "success_pct": 100.0,
+      "p50_ms": 0.55,
+      "p95_ms": 0.708,
+      "status": "OK"
+    },
+    {
+      "rate_pps": 50000,
+      "sent": 1000,
+      "answered": 1000,
+      "success_pct": 100.0,
+      "p50_ms": 0.556,
+      "p95_ms": 0.686,
+      "status": "OK"
+    },
+    {
+      "rate_pps": 60000,
+      "sent": 1000,
+      "answered": 1000,
+      "success_pct": 100.0,
+      "p50_ms": 0.551,
+      "p95_ms": 0.685,
+      "status": "OK"
+    },
+    {
+      "rate_pps": 75000,
+      "sent": 1000,
+      "answered": 1000,
+      "success_pct": 100.0,
+      "p50_ms": 0.572,
+      "p95_ms": 0.679,
+      "status": "OK"
+    },
+    {
+      "rate_pps": 100000,
+      "sent": 1000,
+      "answered": 886,
+      "success_pct": 88.6,
+      "p50_ms": 15.603,
+      "p95_ms": 28.224,
+      "status": "SATURATED"
+    }
+  ]
+}

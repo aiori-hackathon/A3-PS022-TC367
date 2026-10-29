@@ -1,0 +1,20 @@
+{
+  "run_name": "smoke_S1_B0_1.0x_1",
+  "scenario": "S1",
+  "config": "B0",
+  "xdp_mode": "none",
+  "level": 1.0,
+  "timestamp": 1793271866.849354,
+  "git_commit": "616427a3b166aa3eb46184d9bca5b4e1516a84ec",
+  "parameters": {
+    "S_pps": 100000,
+    "flood_rate": 100000,
+    "src_rate": 500,
+    "src_burst": 20,
+    "glob_rate": 70000,
+    "glob_burst": 20,
+    "warmup_s": 2,
+    "window_s": 10,
+    "cooldown_s": 2
+  }
+}

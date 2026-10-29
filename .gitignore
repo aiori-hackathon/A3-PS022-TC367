@@ -37,6 +37,7 @@ env/
 results/raw/*
 !results/raw/.gitkeep
 !results/raw/namespaces_B0_validation/
+!results/raw/smoke_S1_*/
 
 # Evidence local folders
 docs/person-a/evidence/local-*/

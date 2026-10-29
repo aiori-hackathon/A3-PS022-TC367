@@ -1,6 +1,6 @@
 {
   "calibration": {
-    "S_pps": 10000,
+    "S_pps": 100000,
     "levels": [
       0.5,
       1.0,
@@ -10,8 +10,8 @@
   "filter_limits": {
     "src_rate": 500,
     "src_burst": 20,
-    "glob_rate": 7000,
-    "glob_burst": 100
+    "glob_rate": 70000,
+    "glob_burst": 20
   },
   "legitimate": {
     "qps": 100.0,
