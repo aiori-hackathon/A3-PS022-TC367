@@ -1,36 +1,41 @@
 # Documentation Media & Testbed Photographic Evidence
 
-This directory stores visual evidence, physical lab testbed photography, and run-time screenshots collected during calibration and benchmarking for inclusion in the final technical report and presentation.
+This directory stores visual evidence, physical lab testbed photography, and runtime screenshots collected during empirical calibration and matrix benchmarking on the twin HP ProDesk 4 workstations.
 
 ---
 
-## Directory Organization
+## Physical Testbed Photographic Evidence
 
-- **`testbed_photos/`**: High-resolution photographs of the physical testing environment:
-  - Dual HP ProDesk 4 Tower workstations (DUT server `aiori-HP-ProDesk-4` and traffic generator `aiori-2-HP-ProDesk-4`).
-  - Isolated physical Ethernet link (`eno1` direct-connect cable / dedicated switch).
-  - Hardware setup, console monitors, and test execution in the lab.
-- **`screenshots/`**: Console captures, performance monitoring, and terminal evidence:
-  - `lab_pc2_calibration_screenshot.png`: Real-time traffic generation and calibration snapshot from PC 2 (`aiori-2-HP-ProDesk-4`) during initial saturation profiling.
+| Photograph | Host Role | Machine Identifier | Testbed Link |
+|---|---|---|---|
+| [`generator_pc2_run47_s2.jpg`](testbed_photos/generator_pc2_run47_s2.jpg) | **Generator** | PC 2 (`aiori-2-HP-ProDesk-4`, `10.99.0.1`) | Dedicated CAT6 on `eno1` |
+| [`generator_pc2_run48_laptop.jpg`](testbed_photos/generator_pc2_run48_laptop.jpg) | **Generator** | PC 2 (`aiori-2-HP-ProDesk-4`, `10.99.0.1`) | Dedicated CAT6 on `eno1` |
+| [`target_pc1_daemon_drops.jpg`](testbed_photos/target_pc1_daemon_drops.jpg) | **Target** | PC 1 (`aiori-HP-ProDesk-4`, `10.99.0.2`) | Dedicated CAT6 on `eno1` |
+| [`target_pc1_daemon_setup.jpg`](testbed_photos/target_pc1_daemon_setup.jpg) | **Target** | PC 1 (`aiori-HP-ProDesk-4`, `10.99.0.2`) | Dedicated CAT6 on `eno1` |
 
 ---
 
-## Usage in Documentation and Technical Reports
+### 1. Generator Workstation (PC 2 — `10.99.0.1`)
 
-When referencing these images in Markdown or LaTeX documents:
+#### Photo 1: Generator PC Console (Run S2 Baseline)
+![Generator PC 2 Run 47](testbed_photos/generator_pc2_run47_s2.jpg)
 
-### Markdown
-```markdown
-![Physical Testbed Setup](media/testbed_photos/testbed_setup.jpg)
-![Calibration Run Screenshot](media/screenshots/lab_pc2_calibration_screenshot.png)
-```
+#### Photo 2: Generator PC Console with Operator Station
+![Generator PC 2 with Operator Console](testbed_photos/generator_pc2_run48_laptop.jpg)
 
-### LaTeX
-```latex
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=0.85\linewidth]{docs/media/testbed_photos/testbed_setup.jpg}
-  \caption{Physical Lab Testbed Environment: Dual HP ProDesk Workstations with Dedicated Gigabit Link.}
-  \label{fig:testbed_photo}
-\end{figure}
-```
+---
+
+### 2. Target Workstation — Receiver & XDP Filter (PC 1 — `10.99.0.2`)
+
+#### Photo 3: Target PC Console (Telemetry & Layer 3 Drops)
+![Target PC 1 Daemon Layer 3 Drops](testbed_photos/target_pc1_daemon_drops.jpg)
+
+#### Photo 4: Target PC Console (Daemon Execution & Setup)
+![Target PC 1 Daemon Setup](testbed_photos/target_pc1_daemon_setup.jpg)
+
+---
+
+## Runtime Calibration Screenshots
+
+#### Calibration Run Snapshot (PC 2 Saturation Sweep)
+![Calibration Run Screenshot](screenshots/lab_pc2_calibration_screenshot.png)
