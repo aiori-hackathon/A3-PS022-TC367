@@ -298,3 +298,43 @@ sudo ./src/scripts/run_orchestrator.sh --dry-run
 4. Statistical summary written to `results/analysis_summary.json` and `results/analysis_table.csv`.
 5. Publication-quality figure generated at `results/plots/kavach_dryrun_summary.png`.
 
+---
+
+## 7. Phase B4 Execution, Data Freeze, and Publication Artifacts (Phase B5 / A4)
+
+### 7.1 Completed Benchmark Matrices
+1. **Physical Lab Benchmark Matrix (108 Runs):**
+   - 4 configurations (B0, B1, B2, X) $\times$ 3 scenarios (S1, S2, S3) $\times$ 3 levels (50k, 100k, 200k) $\times$ 3 reps.
+   - All 108 runs validated with 6 artifacts per run (648 files total).
+   - Preserved in canonical `results/raw/` and backed up in `results/raw_physical/`.
+2. **Namespace Native Mode Benchmark Matrix (36 Runs):**
+   - 4 configurations $\times$ 3 scenarios $\times$ 3 levels $\times$ 1 rep.
+   - Validated driver-level packet dropping on `veth_xdp` (5.96M packets dropped before `sk_buff` allocation).
+   - Preserved in `results/raw_namespaces/`.
+
+### 7.2 Data Freeze & SHA-256 Checksumming
+Run deterministic checksum verification:
+```bash
+# Verify physical matrix checksums:
+sha256sum -c results/checksums_physical_108.sha256
+sha256sum -c results/raw/checksums.sha256
+
+# Verify namespace matrix checksums:
+sha256sum -c results/checksums_namespaces_36.sha256
+```
+
+### 7.3 Statistical Aggregation & 300 DPI Publication Figures
+1. Generate consolidated statistical summaries (reporting Median and IQR):
+   ```bash
+   python3 ./src/scripts/analyze.py --input-dir results/raw/ --output-dir results/
+   ```
+2. Generate publication-ready figures (300 DPI PNG and vector PDF):
+   ```bash
+   python3 ./src/scripts/generate_publication_figures.py
+   ```
+   *Artifacts in `results/figures/`:*
+   - `fig1_physical_benchmark_matrix.png` / `.pdf`: 4-panel overview (success %, log latency, CPU busy %, socket vs filter drops).
+   - `fig2_rate_levels_and_saturation.png` / `.pdf`: Metric scaling across flood levels (50k, 100k, 200k pps).
+   - `fig3_native_namespaces_validation.png` / `.pdf`: Native driver dropping and SoftIRQ reduction.
+   - `fig4_latency_cdf_distribution.png` / `.pdf`: Empirical latency CDF under S1 @ 100k pps flood.
+

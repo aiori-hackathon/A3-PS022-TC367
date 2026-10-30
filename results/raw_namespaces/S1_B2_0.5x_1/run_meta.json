@@ -1,0 +1,22 @@
+{
+  "run_name": "S1_B2_0.5x_1",
+  "scenario": "S1",
+  "config": "B2",
+  "xdp_mode": "none",
+  "level": 0.5,
+  "rep": 1,
+  "timestamp": 1793347584.3452597,
+  "git_commit": "4f823d761bb2f7b674acee3d28dd110bc82cc773",
+  "dry_run": false,
+  "parameters": {
+    "S_pps": 100000,
+    "flood_rate": 50000,
+    "src_rate": 500,
+    "src_burst": 20,
+    "glob_rate": 70000,
+    "glob_burst": 20,
+    "warmup_s": 10,
+    "window_s": 60,
+    "cooldown_s": 10
+  }
+}

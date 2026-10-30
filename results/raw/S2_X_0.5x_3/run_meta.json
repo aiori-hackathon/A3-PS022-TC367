@@ -1,0 +1,22 @@
+{
+  "run_name": "S2_X_0.5x_3",
+  "scenario": "S2",
+  "config": "X",
+  "xdp_mode": "generic",
+  "level": 0.5,
+  "rep": 3,
+  "timestamp": 1793333864.1008868,
+  "git_commit": "f79f4949c784f3c726759c91744b8ac7991c0dbe",
+  "dry_run": false,
+  "parameters": {
+    "S_pps": 100000,
+    "flood_rate": 50000,
+    "src_rate": 500,
+    "src_burst": 20,
+    "glob_rate": 70000,
+    "glob_burst": 20,
+    "warmup_s": 10,
+    "window_s": 60,
+    "cooldown_s": 10
+  }
+}

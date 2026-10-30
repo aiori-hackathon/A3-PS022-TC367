@@ -150,6 +150,16 @@ dig @10.99.0.2 www.lab.test +short
 ### 4.6 Legitimate Client Response Status Validation
 `legit_client.py` reports `status: ANSWERED` (with `rcode: 0` / `NOERROR`) when resolving queries. Any parsing scripts must accept `status in ["ANSWERED", "SUCCESS"] or rcode in ["0", "NOERROR"]` rather than strictly matching `"SUCCESS"`.
 
+### 4.7 Diagnosing Software Namespace vs. Hardware NIC CPU Mechanics (`veth_xdp`)
+- On physical hardware with native NIC drivers (`igb`, `ixgbe`), the NIC hardware drops the frame directly out of the RX DMA ring buffer before the Linux kernel allocates an `sk_buff`.
+- On virtual ethernet (`veth`) inside namespaces, Linux emulates native XDP in software (`drivers/net/veth.c`). When a packet crosses the veth peer, `veth` allocates an `xdp_buff` via page-pool management, invokes the eBPF program on the single pinned CPU, and if `XDP_DROP` is returned, releases the page.
+- At high flood rates, the unfiltered kernel allocates `sk_buff`s for all packets, saturating SoftIRQ (`ksoftirqd`), whereas XDP drops the frame before `sk_buff` allocation, slashing SoftIRQ overhead. In namespace tests on a single machine, single-core CPU metrics reflect software-emulated page handling, which is why namespace results serve as functional validation while physical host benchmarks reflect true system capacity.
+
+### 4.8 Diagnosing Socket Buffer Overflow (`RcvbufErrors`) Under Unfiltered Saturation
+- In Baseline B0 (No Filter), under flood rates exceeding server capacity ($S = 100,000$ pps), the UDP socket buffer overflows.
+- Check: `grep Udp /proc/net/snmp` -> inspect `RcvbufErrors` and `InErrors`.
+- In our 108 physical runs, B0 suffered over $920,000$ socket buffer overflow drops, causing legitimate queries to fail ($87\%$ median success) and latency to surge from $0.4\text{ ms}$ to $>14\text{ ms}$. Under Kavach XDP, `RcvbufErrors` remained 0 across all runs.
+
 ---
 
 ## 5. Watchdog Auto-Detachment Debugging

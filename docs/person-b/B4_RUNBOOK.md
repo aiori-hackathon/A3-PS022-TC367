@@ -150,7 +150,17 @@ python3 ./src/scripts/analyze.py --input-dir results/raw/ --output-dir results/
 Verify generated outputs:
 - `results/analysis_summary.json`
 - `results/analysis_table.csv`
-- `results/plots/kavach_dryrun_summary.png`
+- `results/plots/kavach_physical_summary.png`
+
+Generate 300 DPI publication figures & vector PDFs:
+```bash
+python3 ./src/scripts/generate_publication_figures.py
+```
+Outputs in `results/figures/`:
+- `fig1_physical_benchmark_matrix.png` / `.pdf`
+- `fig2_rate_levels_and_saturation.png` / `.pdf`
+- `fig3_native_namespaces_validation.png` / `.pdf`
+- `fig4_latency_cdf_distribution.png` / `.pdf`
 
 ### Step 3: Copy to USB Pendrive
 Mount the pendrive on PC 2 (and optionally PC 1 as ground-truth backup) and copy:

@@ -123,3 +123,20 @@
 ### nftables Dynamic Set Inelasticity
 - **Issue:** In baseline configurations (B1/B2), `nftables` dynamic sets do not support LRU eviction.
 - **Behavior:** When the set reaches its configured maximum limit (`size 65535`), new IP entries are dropped or rejected until older elements timeout, diverging from BPF LRU behavior under distributed floods.
+
+---
+
+## 6. Empirical Findings & Benchmarking Distinctions
+
+### `veth_xdp` Software Emulation Tax vs. Physical Hardware NIC Offload
+- **Observation:** In Linux network namespaces on virtual ethernet (`veth`), native XDP (`xdpdrv`) is emulated in software via the kernel module (`drivers/net/veth.c`). When a frame crosses a veth peer, the driver allocates an `xdp_buff` via page-pool management, invokes the eBPF bytecode on the single pinned CPU, and if `XDP_DROP` is returned, releases the page.
+- **Contrast with Hardware:** On physical NICs with native driver support (`igb`, `ixgbe`), the NIC hardware drops the frame directly out of the RX DMA ring buffer before host memory or `sk_buff` allocation occurs.
+- **Empirical Impact:** In our namespace tests, total system CPU was lower under XDP (3.77% vs 4.92%–6.44% in B0), but the single pinned Core 1 experienced software-emulated page handling. This reinforces Section 12.1 of `src/AGENTS.md` and PS-022 Item 6/8: virtual namespace results serve strictly as functional validation (proving driver hook execution and verifier safety), whereas physical testbed benchmarks reflect true system capacity and socket buffer protection.
+
+### Cross-Host Telemetry Streaming Buffer Truncation (`shutdown(SHUT_WR)`)
+- **Observation:** When streaming multi-megabyte CSV and JSON telemetry files across the isolated link from `target_daemon.py` on PC 1 to `orchestrator.py` on PC 2, closing the socket without a graceful half-close caused partial buffer reads on slow receivers.
+- **Fix:** Implemented buffered chunk streaming with an explicit socket half-close (`sock.shutdown(socket.SHUT_WR)`) in `target_daemon.py` to ensure complete, uninterrupted telemetry transfer.
+
+### Latency Distribution Heavy Tails Under DDoS Floods
+- **Observation:** Under heavy query floods, server socket queues and network links exhibit bursty, heavy-tailed delay distributions.
+- **Statistical Rule:** Simple arithmetic means and standard deviations are distorted by extreme queue outliers and failed query timeouts. All reporting must utilize Median and Interquartile Range (IQR) to accurately reflect deterministic service quality and tail jitter under attack.

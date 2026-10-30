@@ -35,11 +35,13 @@ env/
 *.pcap
 *.pcapng
 
-# Large raw benchmark data captures (preserve directory with .gitkeep)
-results/raw/*
-!results/raw/.gitkeep
-!results/raw/namespaces_B0_validation/
-!results/raw/smoke_S1_*/
+# Temporary multi-host sync and staging directories (exclude from repository)
+results_run_pc1/
+results_run_pc2/
+results/raw_physical/
+results/physical/
+results/namespaces/
+results/plots/kavach_summary.png
 
 # Evidence local folders
 docs/person-a/evidence/local-*/

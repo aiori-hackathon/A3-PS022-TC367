@@ -82,3 +82,16 @@ When reviewing `xdp/dns_ratelimit.bpf.c`:
   Does the exported stats CSV strictly match the frozen header format:
   `timestamp, dns_seen, non_dns_passed, passed, drop_source, drop_global, malformed, fragments_passed, unparsable_passed`
 
+---
+
+## 5. Statistical Rigor, Data Integrity & Publication Artifacts Review
+
+- [ ] **Median + Interquartile Range (IQR) Reporting:**
+  Do analysis scripts and tables report Median and IQR ($Q_{75} - Q_{25}$) across repetitions rather than arithmetic mean and standard deviation for non-normal DDoS latency and throughput distributions?
+- [ ] **SHA-256 Data Integrity Checksums:**
+  Are all raw CSV and JSON run artifacts sealed with deterministic SHA-256 checksums (`results/checksums_physical_108.sha256`, `results/checksums_namespaces_36.sha256`) before committing or analyzing?
+- [ ] **300 DPI Publication Quality:**
+  Are generated report figures produced at 300 DPI (raster PNG) alongside scalable vector PDFs (`results/figures/*.pdf`) with consistent color-blind accessible styling and clear axis units?
+- [ ] **Limitation & Hypothesis Honesty:**
+  Are results clearly labeled as physical hardware (`e1000e` in generic mode) or virtual namespace functional validation (`veth` native mode)? Ensure all hypotheses (H1-H4) are evaluated strictly against empirical data without unsupported claims.
+

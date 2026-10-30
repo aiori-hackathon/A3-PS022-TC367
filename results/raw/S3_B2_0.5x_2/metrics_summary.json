@@ -1,0 +1,47 @@
+{
+  "window_duration_seconds": 80.0,
+  "interface": "eno1",
+  "pinned_core": 1,
+  "throughput": {
+    "total_rx_packets": 7127,
+    "total_rx_bytes": 547473,
+    "avg_rx_pps": 89.1,
+    "avg_rx_mbps": 0.05
+  },
+  "cpu_utilization": {
+    "pinned_core_busy_pct": 1.19,
+    "pinned_core_softirq_pct": 0.82,
+    "system_total_busy_pct": 0.1
+  },
+  "drops_by_layer": {
+    "layer1_nic_driver": 0,
+    "layer2_kernel_softnet": 0,
+    "layer3_filter": {
+      "type": "none",
+      "total_drops": 0,
+      "per_source_drops": 0,
+      "global_drops": 0
+    },
+    "layer4_socket_buffer": {
+      "udp_in_errors": 0,
+      "udp_rcvbuf_errors": 0
+    }
+  },
+  "bpf_counters_delta": {
+    "seen": 0,
+    "pass_non_ipv4": 0,
+    "pass_non_udp": 0,
+    "pass_non53": 0,
+    "pass_fragment": 0,
+    "pass_truncated": 0,
+    "pass_invalid_ipv4": 0,
+    "dns_pass": 0,
+    "drop_bad_udp": 0,
+    "drop_short_dns": 0,
+    "drop_src": 0,
+    "drop_global": 0,
+    "drop_busy": 0,
+    "drop_state": 0
+  },
+  "udp_delivered_to_socket": 7217
+}

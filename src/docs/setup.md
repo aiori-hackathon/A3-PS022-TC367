@@ -189,18 +189,28 @@ Choose the matrix tier according to time constraints:
 > - To run a limited batch (e.g. 15 runs in a 25-minute break): add `--batch 15`.
 > - **Auto-Resume:** You can stop with `Ctrl+C` anytime; re-running the orchestrator automatically detects completed runs in `results/raw/` and resumes where it left off!
 
-### Step 4: Data Verification & USB Extraction
+### Step 4: Data Verification, Checksum Freeze & USB Extraction
 1. Verify raw runs are populated:
    ```bash
    ls results/raw/
+   # 108 runs for physical matrix; 36 runs for namespace matrix
    ```
-2. Generate SHA-256 checksums:
+2. Generate and verify SHA-256 checksums:
    ```bash
-   sha256sum results/raw/*/*.csv > results/raw/checksums.sha256
+   # Physical testbed (108 runs, 648 artifacts):
+   sha256sum results/checksums_physical_108.sha256 -c
+   # Namespace testbed (36 runs, 216 artifacts):
+   sha256sum results/checksums_namespaces_36.sha256 -c
    ```
-3. Run statistical analysis:
+3. Run statistical analysis across all 108 runs:
    ```bash
    python3 ./src/scripts/analyze.py --input-dir results/raw/ --output-dir results/
    ```
-4. Copy `results/raw/`, `results/analysis_summary.json`, `results/analysis_table.csv`, and `results/plots/` to USB pendrive for ingestion.
+4. Generate 300 DPI publication figures and vector PDFs:
+   ```bash
+   python3 ./src/scripts/generate_publication_figures.py
+   # Generates fig1_physical_benchmark_matrix, fig2_rate_levels_and_saturation,
+   # fig3_native_namespaces_validation, fig4_latency_cdf_distribution in results/figures/
+   ```
+5. Copy `results/raw/`, `results/figures/`, `results/analysis_summary.json`, `results/analysis_table.csv`, and checksum files to USB pendrive for final report compilation.
 

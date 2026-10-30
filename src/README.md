@@ -144,7 +144,23 @@ sudo ip netns exec srv ip link set dev vsrv xdpgeneric obj xdp/dns_ratelimit.bpf
 
 ---
 
-## 6. References
+## 6. Experimental Results & Publication Artifacts (Phase B4 / B5)
+
+The full experimental matrix has been completed and frozen:
+- **Physical Testbed Benchmark (108 Runs):** Executed across 4 configurations (B0, B1, B2, X) $\times$ 3 scenarios (S1, S2, S3) $\times$ 3 levels $\times$ 3 reps on twin HP ProDesk 4 workstations with Intel `e1000e` NICs. Demonstrates 100% legitimate query availability and $0.44\text{ ms}$ median latency under XDP vs severe socket exhaustion and $14.3\text{ ms}$ delay under B0.
+- **Namespace Native Mode Validation (36 Runs):** Executed in Linux network namespaces on `veth_xdp` in native driver mode (`xdpdrv`). Confirms $5.96\text{M}$ packets dropped directly at the driver hook with a 65% reduction in kernel SoftIRQ overhead.
+- **SHA-256 Checksums Frozen:**
+  - Physical 108 runs (648 artifacts): `results/checksums_physical_108.sha256` and `results/raw/checksums.sha256`
+  - Namespace 36 runs (216 artifacts): `results/checksums_namespaces_36.sha256`
+- **300 DPI Publication Figures & Vector PDFs (`results/figures/`):**
+  - `fig1_physical_benchmark_matrix.png` / `.pdf`: 4-panel overview (success %, log latency, CPU %, socket vs filter drops)
+  - `fig2_rate_levels_and_saturation.png` / `.pdf`: Performance scaling across 50k, 100k, 200k pps flood levels
+  - `fig3_native_namespaces_validation.png` / `.pdf`: Driver-level drop fate and SoftIRQ reduction
+  - `fig4_latency_cdf_distribution.png` / `.pdf`: Empirical latency CDF highlighting sub-millisecond determinism
+
+---
+
+## 7. References
 
 - RFC 1035: Domain Names - Implementation and Specification
 - RFC 2827 / BCP 38: Network Ingress Filtering

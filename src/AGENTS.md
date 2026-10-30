@@ -260,6 +260,9 @@ Calibration was completed empirically on the physical testbed (HP ProDesk 4 Core
 6. **Shared Parameters:** Synchronized and locked in `src/params.yaml` and `src/params.json`.
 7. **Driver Mode:** Intel `e1000e` operates in `xdpgeneric` (generic mode) on Linux kernel `6.14.0-1020-oem`.
 8. **Smoke Test Verification:** Single-run smoke tests across all 4 configs (B0, B1, B2, X) under Scenario S1 @ 100k pps verified XDP achieves 100% legitimate resolution at $p50 = 0.409$ ms (15% faster than nftables B1/B2). Results archived in `results/raw/smoke_S1_*/`.
+9. **Phase B4 Physical Matrix Execution (108 Runs Completed 30 Oct 2026):** Full Target Tier completed across 4 configs $\times$ 3 scenarios $\times$ 3 flood levels $\times$ 3 reps on twin HP ProDesk 4 PCs. Confirmed H2 (XDP maintains 100% legitimate query delivery at $0.44\text{ ms}$ latency vs B0 socket saturation at $14.3\text{ ms}$) and H4 (LRU hash table absorbs 1,000 spoofed IPs without starvation or exhaustion). 648 artifacts validated and frozen with SHA-256 checksums in `results/checksums_physical_108.sha256` and `results/raw/checksums.sha256`.
+10. **Phase B4 Namespace Native Mode Matrix (36 Runs Completed 30 Oct 2026):** 36 runs completed in network namespaces on `veth_xdp` in native mode (`xdpdrv`). Confirmed H3 ($5.96\text{M}$ flood packets dropped directly in driver hook under S1 1.0x, reducing SoftIRQ overhead by 65%). 216 artifacts frozen in `results/checksums_namespaces_36.sha256`.
+11. **Publication Figure Generation (Phase B5 / A4 Completed):** High-resolution 300 DPI figures and scalable vector PDFs generated via `src/scripts/generate_publication_figures.py` in `results/figures/` (`fig1_physical_benchmark_matrix`, `fig2_rate_levels_and_saturation`, `fig3_native_namespaces_validation`, `fig4_latency_cdf_distribution`).
 
 ---
 
@@ -370,8 +373,8 @@ Roles are labelled A and B (assignment of names to roles decided by the team; **
 | B1 | Mon 26 | Repo + `docs/contract.md`; toolchain; namespace env; DNS server (RRL off); legit client v0; collectors v0; **B0 fact script on lab PCs when ready** | kernel/driver/NIC facts to A |
 | B2 | Tue 27 | Generators S1-S3 + guard; baselines B1/B2 with measured-limit verification; orchestrator v1 + `analyze.py` v0; 12-run dry run in namespaces | |
 | B3 | Wed 28 AM | **Calibration on lab PCs** (no XDP needed); levels/limits into params file; smoke test one run per config | `params` file |
-| B4 | Wed PM-Thu AM | Run chosen matrix tier; log failures and re-run; checksums; **data freeze Thu 12:00** | `results/raw/` |
-| B5 | Thu | Plots/tables; report sections: environment, methodology, results, legitimate-query impact, limitations; `setup.md`; document `run_matrix.sh` | report sections |
+| B4 | Wed PM-Thu AM | **Completed:** 108 physical runs (Target Tier) + 36 namespace runs; SHA-256 checksums generated; **data freeze complete** | `results/raw/`, `results/checksums_physical_108.sha256` |
+| B5 | Thu-Fri | **Active:** 300 DPI publication figures generated (`results/figures/`); analysis tables; report drafting | report sections |
 | B6 | Fri | Traffic side of demo; backup demo video; rehearse at least twice; check repo and deliverables | |
 
 **B can do today without lab access or XDP:** repo, toolchain, namespace env, DNS server, legit client, generators + guard, nftables baselines, collectors, orchestrator + analysis (test with B0/B2 and shortened windows), an Ubuntu 22.04 VM for dry-running the install and B0 scripts.

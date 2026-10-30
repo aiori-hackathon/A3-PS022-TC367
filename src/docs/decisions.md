@@ -272,3 +272,33 @@ This document logs architectural and design decisions made throughout the lifecy
   4. **Cross-Host Telemetry Streaming:** In `src/scripts/target_daemon.py`, upon receiving `cmd: "stop"`, wait for `collector_proc`, read `metrics_summary.json` and the server CSVs, and return them inside the JSON response payload. `orchestrator.py` saves them directly into `results/raw/<run_name>/` on PC 2, guaranteeing all 6 artifacts exist locally on PC 2 in real time.
   5. **Flexible CLI Argument Parser:** Implement `parse_flexible_list` and `parse_flexible_levels` with `nargs="*"` in `orchestrator.py` to seamlessly accept both comma-separated and space-separated parameters.
 - **Rationale:** Guarantees zero data loss, eliminates manual file copying across hosts, and enables safe execution in shared offline lab environments.
+
+### ADR-030: Phase B4 Physical Testbed Matrix Execution (108 Runs) & Empirical Validation
+- **Status:** Accepted & Validated (30 Oct 2026 - Target Tier Complete)
+- **Context:** Phase B4 mandates executing the benchmark matrix across 4 configurations (B0, B1, B2, X) $\times$ 3 scenarios (S1, S2, S3) $\times$ 3 flood levels (0.5x, 1.0x, 2.0x) $\times$ 3 repetitions, yielding 108 total experimental runs on twin HP ProDesk 4 workstations (Intel Core Ultra 5 245, onboard `eno1` Intel `e1000e` Gigabit NIC, Ubuntu 24.04 OEM kernel `6.14.0-1020-oem`).
+- **Empirical Findings Across 108 Runs:**
+  1. **Hypothesis H2 (Legitimate Query Protection):** Under Baseline B0 (No Filter), flood traffic saturated server socket buffers, resulting in severe packet drops (median success fell to 87.0% in S1, dropping down to 71.9% at 2.0x) and median latency surged $27\times$ to $14.30\text{ ms}$ (p95: $27.85\text{ ms}$). Under Kavach XDP (X), legitimate query success was maintained at **100.0%** across all S1 runs with ultra-low median latency of **$0.44\text{ ms}$** (p95: $1.43\text{ ms}$), providing deterministic sub-millisecond service.
+  2. **Hypothesis H4 (State Table Resilience under S2 Spoofed Flood):** Under S2 (1,000 random spoofed sources from `198.18.0.0/15`), the BPF `LRU_HASH` map handled key churn without kernel panics, table exhaustion, or lock contention, maintaining 74.0% legitimate query survival matching netfilter ingress while the global rate limiter safely throttled aggregate flood volume.
+  3. **Socket Buffer Protection:** In S1, B0 suffered **$920,180$ socket buffer overflow drops** (`RcvbufErrors`) inside the Linux kernel networking stack, whereas Kavach XDP dropped $5,966,949$ flood packets at the filter layer, resulting in **zero** socket buffer drops.
+- **Data Freeze & Checksumming:** All 108 runs with 6 artifacts per run (648 files total) were frozen and validated with SHA-256 checksums in `results/checksums_physical_108.sha256` and canonical `results/raw/checksums.sha256`.
+
+### ADR-031: Native Mode Validation in Virtual Namespaces (`veth_xdp`) & Software Emulation Analysis
+- **Status:** Accepted & Validated (30 Oct 2026 - 36 Runs Complete)
+- **Context:** To complement the physical testbed (which ran in generic XDP mode due to onboard `e1000e` driver constraints), a full 36-run matrix was executed in Linux network namespaces (`gen` $\leftrightarrow$ `srv`) where the virtual ethernet driver (`veth`) supports native driver-level XDP (`xdpdrv` / `veth_xdp`).
+- **Empirical Findings:**
+  1. **Native Driver Drop (Hypothesis H3):** Driver attachment was confirmed as `"xdp_mode": "native"`. Under S1 @ 1.0x (75,000 pps), out of $6,002,884$ incoming flood packets, **$5,965,866$ packets were dropped directly in the driver hook**, delivering only $37,018$ packets to the UDP socket buffer (matching nftables baselines).
+  2. **Stack Protection & SoftIRQ Reduction:** Driver-level drops prevented incoming flood packets from entering the IP/UDP stack, reducing kernel SoftIRQ CPU overhead from $2.37\%$ in B0 down to **$0.84\%$** under XDP (a 65% reduction).
+  3. **Software Emulation Mechanics on `veth`:** In namespaces on a single host, virtual ethernet emulates native XDP in software (`drivers/net/veth.c`) via page-pool allocations rather than hardware ASIC DMA drops. Total system CPU was lower under XDP (3.77% vs 4.92%–6.44% in B0), while single-core software page allocation on `veth` demonstrated functional correctness rather than hardware capacity numbers, in full agreement with AGENTS.md Section 12.1.
+- **Checksumming:** All 36 namespace runs (216 artifacts) were frozen in `results/checksums_namespaces_36.sha256`.
+
+### ADR-032: Statistical Rigor: Median + IQR Reporting and High-Resolution Publication Artifacts
+- **Status:** Accepted & Implemented (30 Oct 2026)
+- **Context:** Under heavy DDoS query floods, network queueing, bufferbloat, and burst arrival processes exhibit non-Gaussian, heavy-tailed distributions. Standard deviations and simple arithmetic means are distorted by extreme outliers and failed query timeouts.
+- **Decision:**
+  1. **Mandatory Median + IQR:** All analysis routines (`src/scripts/analyze.py`) report Median and Interquartile Range (IQR = $Q_{75} - Q_{25}$) across repetitions for latency, throughput, CPU utilization, and success rates. Median captures central tendency, while IQR quantifies latency jitter and tail-performance predictability under attack.
+  2. **High-Resolution Figures:** Implement `src/scripts/generate_publication_figures.py` to generate 300 DPI raster PNGs and scalable vector PDFs in `results/figures/`:
+     - `fig1_physical_benchmark_matrix`: 4-panel comprehensive physical benchmark summary.
+     - `fig2_rate_levels_and_saturation`: Metric scaling across $0.5\times$, $1.0\times$, $2.0\times$ flood intensity.
+     - `fig3_native_namespaces_validation`: Native mode driver-level drop fate and SoftIRQ reduction.
+     - `fig4_latency_cdf_distribution`: Empirical CDF of query response times highlighting sub-millisecond determinism.
+- **Rationale:** Ensures complete scientific and academic rigor adhering to top-tier benchmarking standards and the requirements of PS-022.

@@ -1,0 +1,22 @@
+{
+  "run_name": "S3_B1_1.0x_2",
+  "scenario": "S3",
+  "config": "B1",
+  "xdp_mode": "none",
+  "level": 1.0,
+  "rep": 2,
+  "timestamp": 1793334270.5247324,
+  "git_commit": "f79f4949c784f3c726759c91744b8ac7991c0dbe",
+  "dry_run": false,
+  "parameters": {
+    "S_pps": 100000,
+    "flood_rate": 100000,
+    "src_rate": 500,
+    "src_burst": 20,
+    "glob_rate": 70000,
+    "glob_burst": 20,
+    "warmup_s": 10,
+    "window_s": 60,
+    "cooldown_s": 10
+  }
+}

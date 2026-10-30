@@ -1,0 +1,254 @@
+[
+  {
+    "order": 1,
+    "scenario": "S1",
+    "config": "X",
+    "level": 0.5,
+    "rep": 1
+  },
+  {
+    "order": 2,
+    "scenario": "S2",
+    "config": "B0",
+    "level": 0.5,
+    "rep": 1
+  },
+  {
+    "order": 3,
+    "scenario": "S1",
+    "config": "B1",
+    "level": 2.0,
+    "rep": 1
+  },
+  {
+    "order": 4,
+    "scenario": "S3",
+    "config": "B1",
+    "level": 0.5,
+    "rep": 1
+  },
+  {
+    "order": 5,
+    "scenario": "S3",
+    "config": "B2",
+    "level": 2.0,
+    "rep": 1
+  },
+  {
+    "order": 6,
+    "scenario": "S2",
+    "config": "B2",
+    "level": 1.0,
+    "rep": 1
+  },
+  {
+    "order": 7,
+    "scenario": "S3",
+    "config": "B2",
+    "level": 0.5,
+    "rep": 1
+  },
+  {
+    "order": 8,
+    "scenario": "S3",
+    "config": "B0",
+    "level": 1.0,
+    "rep": 1
+  },
+  {
+    "order": 9,
+    "scenario": "S2",
+    "config": "X",
+    "level": 1.0,
+    "rep": 1
+  },
+  {
+    "order": 10,
+    "scenario": "S3",
+    "config": "B0",
+    "level": 2.0,
+    "rep": 1
+  },
+  {
+    "order": 11,
+    "scenario": "S3",
+    "config": "B2",
+    "level": 1.0,
+    "rep": 1
+  },
+  {
+    "order": 12,
+    "scenario": "S1",
+    "config": "X",
+    "level": 1.0,
+    "rep": 1
+  },
+  {
+    "order": 13,
+    "scenario": "S1",
+    "config": "X",
+    "level": 2.0,
+    "rep": 1
+  },
+  {
+    "order": 14,
+    "scenario": "S3",
+    "config": "B1",
+    "level": 1.0,
+    "rep": 1
+  },
+  {
+    "order": 15,
+    "scenario": "S1",
+    "config": "B2",
+    "level": 2.0,
+    "rep": 1
+  },
+  {
+    "order": 16,
+    "scenario": "S2",
+    "config": "B2",
+    "level": 2.0,
+    "rep": 1
+  },
+  {
+    "order": 17,
+    "scenario": "S2",
+    "config": "B1",
+    "level": 1.0,
+    "rep": 1
+  },
+  {
+    "order": 18,
+    "scenario": "S3",
+    "config": "X",
+    "level": 2.0,
+    "rep": 1
+  },
+  {
+    "order": 19,
+    "scenario": "S1",
+    "config": "B2",
+    "level": 0.5,
+    "rep": 1
+  },
+  {
+    "order": 20,
+    "scenario": "S3",
+    "config": "B0",
+    "level": 0.5,
+    "rep": 1
+  },
+  {
+    "order": 21,
+    "scenario": "S1",
+    "config": "B0",
+    "level": 0.5,
+    "rep": 1
+  },
+  {
+    "order": 22,
+    "scenario": "S3",
+    "config": "X",
+    "level": 1.0,
+    "rep": 1
+  },
+  {
+    "order": 23,
+    "scenario": "S2",
+    "config": "B0",
+    "level": 1.0,
+    "rep": 1
+  },
+  {
+    "order": 24,
+    "scenario": "S2",
+    "config": "B2",
+    "level": 0.5,
+    "rep": 1
+  },
+  {
+    "order": 25,
+    "scenario": "S1",
+    "config": "B0",
+    "level": 2.0,
+    "rep": 1
+  },
+  {
+    "order": 26,
+    "scenario": "S3",
+    "config": "X",
+    "level": 0.5,
+    "rep": 1
+  },
+  {
+    "order": 27,
+    "scenario": "S3",
+    "config": "B1",
+    "level": 2.0,
+    "rep": 1
+  },
+  {
+    "order": 28,
+    "scenario": "S2",
+    "config": "X",
+    "level": 0.5,
+    "rep": 1
+  },
+  {
+    "order": 29,
+    "scenario": "S1",
+    "config": "B1",
+    "level": 0.5,
+    "rep": 1
+  },
+  {
+    "order": 30,
+    "scenario": "S2",
+    "config": "X",
+    "level": 2.0,
+    "rep": 1
+  },
+  {
+    "order": 31,
+    "scenario": "S1",
+    "config": "B1",
+    "level": 1.0,
+    "rep": 1
+  },
+  {
+    "order": 32,
+    "scenario": "S2",
+    "config": "B0",
+    "level": 2.0,
+    "rep": 1
+  },
+  {
+    "order": 33,
+    "scenario": "S2",
+    "config": "B1",
+    "level": 0.5,
+    "rep": 1
+  },
+  {
+    "order": 34,
+    "scenario": "S2",
+    "config": "B1",
+    "level": 2.0,
+    "rep": 1
+  },
+  {
+    "order": 35,
+    "scenario": "S1",
+    "config": "B0",
+    "level": 1.0,
+    "rep": 1
+  },
+  {
+    "order": 36,
+    "scenario": "S1",
+    "config": "B2",
+    "level": 1.0,
+    "rep": 1
+  }
+]

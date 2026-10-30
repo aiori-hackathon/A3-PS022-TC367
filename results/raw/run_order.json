@@ -1,0 +1,86 @@
+[
+  {
+    "order": 1,
+    "scenario": "S2",
+    "config": "X",
+    "level": 1.0,
+    "rep": 1
+  },
+  {
+    "order": 2,
+    "scenario": "S2",
+    "config": "B1",
+    "level": 1.0,
+    "rep": 1
+  },
+  {
+    "order": 3,
+    "scenario": "S1",
+    "config": "B2",
+    "level": 1.0,
+    "rep": 1
+  },
+  {
+    "order": 4,
+    "scenario": "S3",
+    "config": "B0",
+    "level": 1.0,
+    "rep": 1
+  },
+  {
+    "order": 5,
+    "scenario": "S3",
+    "config": "B1",
+    "level": 1.0,
+    "rep": 1
+  },
+  {
+    "order": 6,
+    "scenario": "S2",
+    "config": "B2",
+    "level": 1.0,
+    "rep": 1
+  },
+  {
+    "order": 7,
+    "scenario": "S3",
+    "config": "X",
+    "level": 1.0,
+    "rep": 1
+  },
+  {
+    "order": 8,
+    "scenario": "S1",
+    "config": "X",
+    "level": 1.0,
+    "rep": 1
+  },
+  {
+    "order": 9,
+    "scenario": "S2",
+    "config": "B0",
+    "level": 1.0,
+    "rep": 1
+  },
+  {
+    "order": 10,
+    "scenario": "S1",
+    "config": "B0",
+    "level": 1.0,
+    "rep": 1
+  },
+  {
+    "order": 11,
+    "scenario": "S1",
+    "config": "B1",
+    "level": 1.0,
+    "rep": 1
+  },
+  {
+    "order": 12,
+    "scenario": "S3",
+    "config": "B2",
+    "level": 1.0,
+    "rep": 1
+  }
+]
