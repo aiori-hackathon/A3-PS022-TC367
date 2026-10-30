@@ -262,7 +262,8 @@ Calibration was completed empirically on the physical testbed (HP ProDesk 4 Core
 8. **Smoke Test Verification:** Single-run smoke tests across all 4 configs (B0, B1, B2, X) under Scenario S1 @ 100k pps verified XDP achieves 100% legitimate resolution at $p50 = 0.409$ ms (15% faster than nftables B1/B2). Results archived in `results/raw/smoke_S1_*/`.
 9. **Phase B4 Physical Matrix Execution (108 Runs Completed 30 Oct 2026):** Full Target Tier completed across 4 configs $\times$ 3 scenarios $\times$ 3 flood levels $\times$ 3 reps on twin HP ProDesk 4 PCs. Confirmed H2 (XDP maintains 100% legitimate query delivery at $0.44\text{ ms}$ latency vs B0 socket saturation at $14.3\text{ ms}$) and H4 (LRU hash table absorbs 1,000 spoofed IPs without starvation or exhaustion). 648 artifacts validated and frozen with SHA-256 checksums in `results/checksums_physical_108.sha256` and `results/raw/checksums.sha256`.
 10. **Phase B4 Namespace Native Mode Matrix (36 Runs Completed 30 Oct 2026):** 36 runs completed in network namespaces on `veth_xdp` in native mode (`xdpdrv`). Confirmed H3 ($5.96\text{M}$ flood packets dropped directly in driver hook under S1 1.0x, reducing SoftIRQ overhead by 65%). 216 artifacts frozen in `results/checksums_namespaces_36.sha256`.
-11. **Publication Figure Generation (Phase B5 / A4 Completed):** High-resolution 300 DPI figures and scalable vector PDFs generated via `src/scripts/generate_publication_figures.py` in `results/figures/` (`fig1_physical_benchmark_matrix`, `fig2_rate_levels_and_saturation`, `fig3_native_namespaces_validation`, `fig4_latency_cdf_distribution`).
+11. **Publication Figure Generation (Phase B5 / A4 Completed):** High-resolution 300 DPI figures and scalable vector PDFs generated via `src/scripts/generate_publication_figures.py` in `results/figures/` (`fig1_physical_benchmark_matrix`, `fig2_rate_levels_and_saturation`, `fig3_native_namespaces_validation`, `fig4_latency_cdf_distribution`, and hypothesis validation figures `fig1_h2_*` through `fig5_latency_cdf_detail_*`).
+12. **Photographic & Live Run Evidence:** Physical lab testing photos (twin HP ProDesk PCs, direct CAT6 link) and live console monitoring screenshots (`lab_pc2_calibration_screenshot.png`) are cataloged in `docs/media/` (`testbed_photos/` and `screenshots/`) for inclusion in the final technical report and presentation.
 
 ---
 
@@ -317,6 +318,7 @@ Checks: `sudo ip netns exec gen ping -c2 10.99.0.2`; `sudo ip netns exec gen dig
   2. Disconnect `eno1` from the campus network on both PCs.
   3. Direct-connect `eno1` of PC 1 (Target, `10.99.0.2/24`) and PC 2 (Generator, `10.99.0.1/24`) with a CAT6 cable.
   4. Work via physical console or secondary USB-Ethernet adapter.
+- **Visual Evidence:** High-resolution photographs of the physical setup (workstations, direct cabling, console terminals) and live run captures are preserved in `docs/media/testbed_photos/` and `docs/media/screenshots/`.
 - **Required Host Tuning:**
   - Set governor: `echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor`
   - Stop jitter: `sudo systemctl stop unattended-upgrades && sudo ufw disable`
@@ -415,6 +417,9 @@ kavach/                      # repo named after the team; confirm exact naming r
     decisions.md             every design decision and why (both of us write entries)
     contract.md              loader CLI, stats CSV columns, run-dir naming, params format
     setup.md                 lab setup and environment table (kernel, NIC, driver, XDP mode, tool versions)
+    media/                   visual evidence and testbed assets for final report
+      testbed_photos/        physical testing setup, dual HP workstations, cabling
+      screenshots/           real-time traffic injection and monitoring console captures
     (required submission PDF per the organizers' structure)
   xdp/
     dns_ratelimit.bpf.c      XDP program
@@ -440,6 +445,8 @@ Commit at least daily, by directory to avoid conflicts. No full clean-machine `r
 ## 16. Report and demo
 
 **Report (PDF in repo, organizers' structure):** objectives and hypotheses; scope and safety; design (parsing, GCRA, maps, check order, concurrency decision); baselines and fairness controls; traffic and scenarios; calibration; methodology; results (median/IQR, drops by layer, CPU per packet, legitimate success and latency); analysis of legitimate-query impact (collateral damage in S2); limitations; reduced-matrix disclosure.
+
+**Visual Evidence & Photography:** High-resolution photographs of the physical testing laboratory (dual HP ProDesk workstations, isolated cabling) and live run screenshots taken during calibration and benchmarking are cataloged in `docs/media/` (`testbed_photos/` and `screenshots/`). Incorporate these figures into the final PDF submission report to demonstrate physical laboratory execution.
 
 **Demo (about 4 minutes):** (1) start DNS server and legitimate client, show normal success; (2) flood with no filter, show legitimate success and CPU affected; (3) repeat with nftables, then XDP, show drop counters and legitimate success; (4) show plots, limitations, and the pseudocode (section 7.4). Keep a **recorded backup video**. Rehearse at least twice.
 

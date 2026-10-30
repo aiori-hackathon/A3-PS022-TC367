@@ -214,3 +214,17 @@ Choose the matrix tier according to time constraints:
    ```
 5. Copy `results/raw/`, `results/figures/`, `results/analysis_summary.json`, `results/analysis_table.csv`, and checksum files to USB pendrive for final report compilation.
 
+---
+
+## 7. Photographic Evidence & Run Monitoring Captures
+
+To ensure transparency and rigorous physical lab verification in the submission report, photographs and live execution captures are cataloged in `docs/media/`:
+
+- **Physical Testbed Photography (`docs/media/testbed_photos/`):**
+  - High-resolution photographs of the twin HP ProDesk 4 Tower workstations (DUT server `aiori-HP-ProDesk-4` and traffic generator `aiori-2-HP-ProDesk-4`).
+  - Dedicated direct CAT6 Gigabit link connecting `eno1` on both systems.
+  - Workstation arrangement and console displays during testing.
+- **Console & Monitoring Screenshots (`docs/media/screenshots/`):**
+  - `lab_pc2_calibration_screenshot.png`: Console screenshot from PC 2 (`aiori-2-HP-ProDesk-4`) showing real-time traffic generation and pre-flight saturation ramp execution during calibration.
+
+

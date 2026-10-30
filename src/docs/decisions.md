@@ -302,3 +302,13 @@ This document logs architectural and design decisions made throughout the lifecy
      - `fig3_native_namespaces_validation`: Native mode driver-level drop fate and SoftIRQ reduction.
      - `fig4_latency_cdf_distribution`: Empirical CDF of query response times highlighting sub-millisecond determinism.
 - **Rationale:** Ensures complete scientific and academic rigor adhering to top-tier benchmarking standards and the requirements of PS-022.
+
+
+### ADR-033: Archival of Physical Testbed Photographic Evidence & Calibration Screenshots
+- **Status:** Accepted & Documented (30 Oct 2026)
+- **Context:** To satisfy the AIORI Hackathon submission requirements, verify real physical laboratory execution on the twin HP ProDesk 4 workstations, and provide complete transparency in the technical report, visual evidence must be formally cataloged and archived in the repository.
+- **Decision:**
+  1. **Documentation Media Hierarchy:** Established `docs/media/` with subdirectories `docs/media/testbed_photos/` (for high-resolution photography of the twin HP ProDesk workstations, isolated CAT6 Gigabit cabling, and monitor consoles) and `docs/media/screenshots/` (for real-time terminal and monitoring captures).
+  2. **Calibration Evidence Integration:** Copied `results/calibration/lab_pc2_calibration_screenshot.png` (captured during live traffic generation on PC 2 and transferred via USB pendrive) into `docs/media/screenshots/`.
+  3. **Report Integration:** Direct Markdown and LaTeX embedding paths documented in `docs/media/README.md` and referenced in `docs/setup.md` and `src/AGENTS.md`.
+- **Rationale:** Provides irrefutable empirical proof of physical testbed execution, hardware bring-up, and live benchmarking.

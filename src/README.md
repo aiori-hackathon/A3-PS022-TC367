@@ -92,6 +92,9 @@ kavach/
 │       ├── stop_dns.sh        # Graceful shutdown of DNS daemons
 │       └── test_dns.sh        # DNS resolution verification tool
 ├── docs/                      # Consolidated technical documentation & runbooks
+│   └── media/                 # Testbed photography & run monitoring screenshots
+│       ├── testbed_photos/    # Dual HP ProDesk physical lab workstation photos
+│       └── screenshots/       # Live calibration & execution console captures
 └── results/raw/               # Raw experimental telemetry artifacts
 ```
 
@@ -157,6 +160,9 @@ The full experimental matrix has been completed and frozen:
   - `fig2_rate_levels_and_saturation.png` / `.pdf`: Performance scaling across 50k, 100k, 200k pps flood levels
   - `fig3_native_namespaces_validation.png` / `.pdf`: Driver-level drop fate and SoftIRQ reduction
   - `fig4_latency_cdf_distribution.png` / `.pdf`: Empirical latency CDF highlighting sub-millisecond determinism
+- **Physical Testbed Photography & Calibration Captures (`docs/media/`):**
+  - High-resolution physical workstation photographs in `docs/media/testbed_photos/`.
+  - Live console capture of PC 2 traffic generation and saturation calibration in `docs/media/screenshots/lab_pc2_calibration_screenshot.png`.
 
 ---
 
