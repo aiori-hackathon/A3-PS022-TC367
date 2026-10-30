@@ -141,9 +141,9 @@ def parse_run_dir(run_dir: Path) -> Dict[str, Any]:
     }
 
 
-def generate_plots(grouped_data: Dict[str, Dict[str, Any]], output_plot: Path):
+def generate_plots(grouped_data: Dict[str, Dict[str, Any]], output_plot: Path, title: str = "Kavach PS-022: Multi-Layer eBPF/XDP Rate Limiting Benchmark"):
     """Generates a 2x2 publication-quality comparison figure using matplotlib."""
-    PLOTS_DIR.mkdir(parents=True, exist_ok=True)
+    output_plot.parent.mkdir(parents=True, exist_ok=True)
 
     scenarios = ["S1", "S2", "S3"]
     configs = ["B0", "B1", "B2", "X"]
@@ -151,7 +151,7 @@ def generate_plots(grouped_data: Dict[str, Dict[str, Any]], output_plot: Path):
     colors = {"B0": "#d9534f", "B1": "#f0ad4e", "B2": "#5bc0de", "X": "#5cb85c"}
 
     fig, axes = plt.subplots(2, 2, figsize=(14, 10))
-    fig.suptitle("Kavach PS-022: Multi-Layer DDoS Mitigation Benchmark (Dry Run)", fontsize=16, fontweight="bold")
+    fig.suptitle(title, fontsize=16, fontweight="bold")
 
     bar_width = 0.18
     x_indices = np.arange(len(scenarios))
@@ -238,16 +238,27 @@ def generate_plots(grouped_data: Dict[str, Dict[str, Any]], output_plot: Path):
 
 
 def main():
-    if not RESULTS_RAW_DIR.is_dir():
-        print(f"[ERROR] Raw results directory '{RESULTS_RAW_DIR}' does not exist!", file=sys.stderr)
+    import argparse
+    parser = argparse.ArgumentParser(description="Kavach Telemetry Analysis Engine")
+    parser.add_argument("--input-dir", default=str(RESULTS_RAW_DIR), help="Path to raw results directory")
+    parser.add_argument("--output-dir", default=str(REPO_ROOT / "results"), help="Path to output directory")
+    parser.add_argument("--title", default="Kavach PS-022: Multi-Layer eBPF/XDP Rate Limiting Benchmark", help="Plot super title")
+    parser.add_argument("--plot-name", default="kavach_summary.png", help="Plot filename")
+    args = parser.parse_args()
+
+    input_raw_dir = Path(args.input_dir)
+    output_dir = Path(args.output_dir)
+
+    if not input_raw_dir.is_dir():
+        print(f"[ERROR] Raw results directory '{input_raw_dir}' does not exist!", file=sys.stderr)
         sys.exit(1)
 
-    run_dirs = [d for d in RESULTS_RAW_DIR.iterdir() if d.is_dir() and d.name.startswith(("S1_", "S2_", "S3_")) and (d / "metrics_summary.json").is_file()]
+    run_dirs = [d for d in input_raw_dir.iterdir() if d.is_dir() and d.name.startswith(("S1_", "S2_", "S3_")) and (d / "metrics_summary.json").is_file()]
     if not run_dirs:
-        print(f"[WARN] No completed run directories found in {RESULTS_RAW_DIR}.")
+        print(f"[WARN] No completed run directories found in {input_raw_dir}.")
         sys.exit(0)
 
-    print(f"=== Kavach PS-022 Analysis Engine: Processing {len(run_dirs)} Runs ===")
+    print(f"=== Kavach PS-022 Analysis Engine: Processing {len(run_dirs)} Runs from {input_raw_dir} ===")
 
     parsed_runs = [parse_run_dir(d) for d in run_dirs]
 
@@ -317,13 +328,13 @@ def main():
     print("----------------------------------------------------------------------------------------------------------\n")
 
     # Save outputs
-    REPO_ROOT.joinpath("results").mkdir(exist_ok=True)
-    summary_json_path = REPO_ROOT / "results" / "analysis_summary.json"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    summary_json_path = output_dir / "analysis_summary.json"
     with open(summary_json_path, "w", encoding="utf-8") as f:
         json.dump(analysis_summary, f, indent=2)
     print(f"[SAVED] Analysis summary JSON written to: {summary_json_path}")
 
-    csv_path = REPO_ROOT / "results" / "analysis_table.csv"
+    csv_path = output_dir / "analysis_table.csv"
     with open(csv_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=[
             "scenario", "config", "samples", "success_median", "success_iqr",
@@ -335,8 +346,8 @@ def main():
     print(f"[SAVED] Consolidated CSV written to: {csv_path}")
 
     # Generate multi-panel matplotlib figure
-    plot_path = PLOTS_DIR / "kavach_dryrun_summary.png"
-    generate_plots(analysis_summary, plot_path)
+    plot_path = output_dir / "plots" / args.plot_name
+    generate_plots(analysis_summary, plot_path, title=args.title)
 
 
 if __name__ == "__main__":

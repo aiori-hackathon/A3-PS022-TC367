@@ -162,7 +162,8 @@ class Orchestrator:
                  host_mode: bool = False, iface: Optional[str] = None,
                  target_ip: Optional[str] = None, daemon_port: int = 9999,
                  mode: str = "auto", pause_between: bool = False,
-                 resume: bool = True, batch_size: int = 0):
+                 resume: bool = True, batch_size: int = 0,
+                 results_dir: Optional[str] = None):
         self.params = params
         self.dry_run = dry_run
         self.seed = seed
@@ -171,6 +172,7 @@ class Orchestrator:
         self.resume = resume
         self.batch_size = batch_size
         self.daemon_port = daemon_port
+        self.results_raw_dir = Path(results_dir) if results_dir else RESULTS_RAW_DIR
 
         self.target_ip = target_ip or params.get("network", {}).get("target_ip", "10.99.0.2")
         self.target_port = params.get("network", {}).get("target_port", 53)
@@ -232,7 +234,7 @@ class Orchestrator:
         self.scenarios = custom_scenarios or orch_cfg.get("scenarios", ["S1", "S2", "S3"])
         self.reps = custom_reps or (1 if dry_run else orch_cfg.get("repetitions", 3))
 
-        RESULTS_RAW_DIR.mkdir(parents=True, exist_ok=True)
+        self.results_raw_dir.mkdir(parents=True, exist_ok=True)
 
     def reset_state(self):
         """Clean teardown of filters, caches, and daemons between runs."""
@@ -339,7 +341,7 @@ class Orchestrator:
     def execute_run(self, scenario: str, config: str, level: float, rep: int):
         """Executes a single benchmark run."""
         run_name = f"{scenario}_{config}_{level}x_{rep}"
-        run_dir = RESULTS_RAW_DIR / run_name
+        run_dir = self.results_raw_dir / run_name
         run_dir.mkdir(parents=True, exist_ok=True)
 
         print(f"\n{'='*70}")
@@ -517,7 +519,7 @@ class Orchestrator:
             {"order": idx + 1, "scenario": s, "config": c, "level": lvl, "rep": rep}
             for idx, (s, c, lvl, rep) in enumerate(shuffled_runs)
         ]
-        with open(RESULTS_RAW_DIR / "run_order.json", "w") as f_order:
+        with open(self.results_raw_dir / "run_order.json", "w") as f_order:
             json.dump(order_meta, f_order, indent=2)
 
         start_time = time.time()
@@ -527,7 +529,7 @@ class Orchestrator:
         try:
             for idx, (s, c, lvl, rep) in enumerate(shuffled_runs):
                 run_name = f"{s}_{c}_{lvl}x_{rep}"
-                run_dir = RESULTS_RAW_DIR / run_name
+                run_dir = self.results_raw_dir / run_name
                 meta_file = run_dir / "run_meta.json"
                 legit_csv = run_dir / "legit_client.csv"
 
@@ -582,8 +584,8 @@ class Orchestrator:
         self.reset_state()
 
         # Trigger analysis
-        print("\n[INFO] Launching analyze.py to compute metrics and generate summary plot...")
-        analyze_cmd = ["python3", str(SCRIPTS_DIR / "analyze.py")]
+        print(f"\n[INFO] Launching analyze.py for {self.results_raw_dir}...")
+        analyze_cmd = ["python3", str(SCRIPTS_DIR / "analyze.py"), "--input-dir", str(self.results_raw_dir)]
         subprocess.run(analyze_cmd)
 
 
@@ -593,6 +595,7 @@ def main():
     parser.add_argument("--dry-run", action="store_true", help="Execute rapid dry run with shortened windows")
     parser.add_argument("--host", action="store_true", help="Execute on physical host network stack without namespaces")
     parser.add_argument("--iface", help="Physical interface name (e.g. eno1)")
+    parser.add_argument("--results-dir", help="Custom output directory for raw results (default: results/raw)")
     parser.add_argument("--target", default="10.99.0.2", help="Target server IP (default: 10.99.0.2)")
     parser.add_argument("--daemon-port", type=int, default=9999, help="Target daemon port (default: 9999)")
     parser.add_argument("--mode", choices=["auto", "daemon", "local"], default="auto",
@@ -628,7 +631,8 @@ def main():
         mode=args.mode,
         pause_between=args.pause,
         resume=not args.no_resume,
-        batch_size=args.batch
+        batch_size=args.batch,
+        results_dir=args.results_dir
     )
     orchestrator.run_matrix()
 
