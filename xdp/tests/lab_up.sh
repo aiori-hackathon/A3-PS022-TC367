@@ -1,5 +1,5 @@
 #!/bin/bash
-# Creates only Person A's isolated functional-test network.
+# Creates isolated functional-test network.
 set -euo pipefail
 [[ $EUID -eq 0 ]] || { echo 'Run: sudo bash xdp/tests/lab_up.sh' >&2; exit 1; }
 if ip link show veth0 >/dev/null 2>&1 || ip netns list | awk '{print $1}' | grep -qx kavach-test; then

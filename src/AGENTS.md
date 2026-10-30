@@ -18,7 +18,7 @@
 - We benchmark it on a **controlled, isolated pair of Linux hosts** against two baselines (**no filter** and **nftables**) under **three synthetic flood patterns**, measuring **CPU, throughput, packet drops, and legitimate-query success**.
 - Deliverables: private GitHub repo, a PDF report in the organizers' structure, and a live demo with a pseudocode snippet.
 - **Time is very short:** about 4 working days remain (26-30 Oct, 31 Oct buffer). The plan has been compressed (section 14).
-- Two roles: **Person A = XDP program + loader**, **Person B = lab, traffic, baselines, measurement**.
+- Subsystems: **XDP Subsystem (eBPF program + loader)** and **Measurement Harness (lab bring-up, traffic, baselines, orchestration)**.
 - Hard safety rule: **no flooding outside the isolated lab link, ever** (section 3).
 
 ---
@@ -108,7 +108,7 @@ The deck's Deployment Timeline (6-30 Oct) is now **obsolete**; use section 14.
 
 ---
 
-## 7. XDP filter specification (Person A owns this)
+## 7. XDP filter specification
 
 **Language/toolchain:** restricted C, clang `-target bpf -O2 -g`, libbpf headers. Confirmed lab platform: **Ubuntu 24.04.4 LTS** with OEM kernel **6.14.0-1020-oem** (verified 27 Oct 2026; BTF enabled in `/sys/kernel/btf/vmlinux`; BPF atomic CAS supported). Clang 14/18. If you get `asm/types.h not found`, add `-I/usr/include/$(uname -m)-linux-gnu`. Ensure bytecode compiles cleanly with `-mcpu=v3`.
 
@@ -177,7 +177,7 @@ xdp_dns_ratelimit(pkt):
     count passed; return PASS
 ```
 
-### 7.5 Loader / controller contract (shared with Person B)
+### 7.5 Loader / controller contract
 
 Default implementation: a **Python/shell wrapper around `bpftool` and `ip`** (a C/libbpf loader only if time remains). **[VERIFY]** exact syntax on the lab's bpftool:
 
@@ -194,7 +194,7 @@ Required commands: `load`, `attach <iface> <native|generic|auto>` (log which mod
 **Stats CSV columns (frozen contract):**
 `timestamp, dns_seen, non_dns_passed, passed, drop_source, drop_global, malformed, fragments_passed, unparsable_passed`
 
-### 7.6 Acceptance tests for A (run in namespaces, single core)
+### 7.6 Acceptance tests (run in namespaces, single core)
 
 - Compiles with clang 14; **verifier accepts on kernel 5.15** (test in an Ubuntu 22.04 VM or the lab PC).
 - Crafted packets (scapy or `bpftool prog run`): non-DNS passed, valid DNS passed, malformed dropped, fragments/truncated counted and passed.
@@ -204,7 +204,7 @@ Required commands: `load`, `attach <iface> <native|generic|auto>` (log which mod
 
 ---
 
-## 8. Baselines and fairness (Person B owns this)
+## 8. Baselines and fairness
 
 | Config | Description |
 |---|---|
@@ -232,7 +232,7 @@ The nftables dynamic set does not evict like an LRU map: with many sources it fi
 
 ---
 
-## 9. Traffic generation (Person B owns this)
+## 9. Traffic generation
 
 ### 9.1 Legitimate client
 Open-loop: sends on a fixed schedule regardless of replies, **50-200 queries/s**, from its own dedicated source IP (not in the flood set), **1-2 s timeout, no retries**, queries only for names that exist in the test zone. Late replies count as failures. Per-query log: `seq, send_ts, recv_ts, rcode, latency`. Headline metric: success rate = answered / sent in the measurement window; latency p50/p95/p99.
@@ -249,7 +249,7 @@ All use well-formed UDP/53 queries. Generators: dnsperf/flamethrower (S1, rate c
 
 ---
 
-## 10. Calibration and parameter selection (Person B)
+## 10. Calibration and parameter selection
 
 Calibration was completed empirically on the physical testbed (HP ProDesk 4 Core Ultra 5 245, Core 1 pinned):
 1. **Host Tuning & Core Pinning:** DNS daemon (`nsd`) and network interrupts for `IR-PCI-NSI-0000:80:1f.6` (`eno1`, Intel `e1000e`) pinned strictly to **Core 1** via `pin_core.sh`.
@@ -293,7 +293,7 @@ Calibration was completed empirically on the physical testbed (HP ProDesk 4 Core
 
 ## 12. Environments
 
-### 12.1 Development: namespaces + veth (any Linux, e.g. Person B's Arch PC)
+### 12.1 Development: namespaces + veth (any Linux development host)
 Functional validation only (generator and server share CPU; veth bypasses a real NIC). Use `taskset` to separate cores.
 
 ```bash
@@ -304,7 +304,7 @@ sudo ./src/scripts/teardown_env.sh   # cleanly terminates namespace processes an
 ```
 Checks: `sudo ip netns exec gen ping -c2 10.99.0.2`; `sudo ip netns exec gen dig @10.99.0.2 www.lab.test`.
 
-**Caution:** an Arch (rolling) kernel/clang is newer than Ubuntu 22.04's. A program that loads on Arch can still be **rejected by the 5.15 verifier**. Test A's code in an Ubuntu 22.04 VM (QEMU/virt-manager) or on the lab PC as early as possible.
+**Caution:** an Arch (rolling) kernel/clang is newer than Ubuntu 22.04's. A program that loads on Arch can still be **rejected by the 5.15 verifier**. Test XDP code in an Ubuntu 22.04 VM (QEMU/virt-manager) or on the lab PC as early as possible.
 
 ### 12.2 Final: two physical lab PCs (Confirmed via B0 Collector 27 Oct 2026)
 - **Hosts:** Two twin HP ProDesk 4 Tower G1i Desktop AI PCs (`aiori-HP-ProDesk-4...` and `aiori-2-HP-ProDesk-4...`).
@@ -326,7 +326,7 @@ Checks: `sudo ip netns exec gen ping -c2 10.99.0.2`; `sudo ip netns exec gen dig
   `sudo apt install -y clang llvm libbpf-dev linux-tools-common linux-tools-generic nsd dnsperf netsniff-ng python3-pandas python3-matplotlib python3-yaml sysstat ethtool`
 
 ### 12.3 B0 checklist (lab readiness): what to verify
-Written lab permission; mentor approval for flood tests; root/sudo; package install possible; reboot/reset behavior of the PCs; time slots; kernel (`uname -r`, plan assumes >= 5.15); OS; NIC list and **driver** (`ethtool -i`); link speed; queue count (`ethtool -l`); CPU cores/governor; BPF support (`/sys/kernel/btf/vmlinux`, `CONFIG_BPF`, `CONFIG_BPF_SYSCALL`, bpffs mounted); management vs test NIC identification; no existing firewall surprises (`sudo nft list ruleset`, read only); IPv6 state; installed tools; auto-updates (`unattended-upgrades`) and sleep settings; disk/RAM. Read-only collector (run on each PC; send output to Person A):
+Written lab permission; mentor approval for flood tests; root/sudo; package install possible; reboot/reset behavior of the PCs; time slots; kernel (`uname -r`, plan assumes >= 5.15); OS; NIC list and **driver** (`ethtool -i`); link speed; queue count (`ethtool -l`); CPU cores/governor; BPF support (`/sys/kernel/btf/vmlinux`, `CONFIG_BPF`, `CONFIG_BPF_SYSCALL`, bpffs mounted); management vs test NIC identification; no existing firewall surprises (`sudo nft list ruleset`, read only); IPv6 state; installed tools; auto-updates (`unattended-upgrades`) and sleep settings; disk/RAM. Read-only collector (run on each PC; save output to `results/`):
 
 ```bash
 #!/usr/bin/env bash
@@ -354,32 +354,30 @@ echo "== firewall (needs sudo, read only) =="; sudo -n nft list ruleset 2>/dev/n
 
 ---
 
-## 13. Roles and plans
+## 13. Project Workstreams & Deliverables
 
-Roles are labelled A and B (assignment of names to roles decided by the team; **work was deliberately not split by name in earlier documents**).
+The implementation is structured into two core workstreams:
 
-### Person A: XDP program and loader
-| Phase | When | Work | Hand to B |
+### Workstream 1: XDP Kernel Filter and Control Plane
+| Milestone | Timeline | Deliverables | Status |
 |---|---|---|---|
-| A1 | Mon 26 | Bounded parser, malformed drop, counters, config map, **loader v1** (load/attach/config/stats/detach + watchdog) | loader CLI, CSV header, pinned map names (Mon night) |
-| A2 | Tue 27 | GCRA per-source (LRU) + global, check order, **concurrency decision** (log it), acceptance tests (7.6) | limiter build + frozen config format (Tue night) |
-| A3 | Wed 28 AM | Lab bring-up: build on lab PC, attach **generic first** with watchdog, try native (`xdpdrv`), record result; **code freeze tag by 12:00** | frozen commit |
-| A4 | Wed PM-Thu | Support runs (dmesg, counters), limiter-accuracy check from data, write report sections (design, parsing, GCRA, concurrency, pseudocode, limitations) | report sections by Thu |
-| A5 | Thu-Fri | Demo script (XDP side), repo cleanup (README, `docs/decisions.md`, `xdp/Makefile`), PDF assembly, ownership transfer, submit | |
+| M1 | Mon 26 | Bounded parser, malformed drop, counters, config map, loader v1 (load/attach/config/stats/detach + watchdog) | Completed |
+| M2 | Tue 27 | GCRA per-source (LRU) + global, check order, atomic CAS concurrency, namespace acceptance tests | Completed |
+| M3 | Wed 28 AM | Lab bring-up: build on lab PC, generic mode verification on `eno1` (`e1000e`), native mode verification on `veth_xdp` | Completed |
+| M4 | Wed PM-Thu | Support runs, limiter accuracy validation, architecture and pseudocode documentation | Completed |
+| M5 | Thu-Fri | Demo workflow, repository cleanup, PDF technical report assembly, final delivery | Active |
 
-### Person B: lab, traffic, baselines, measurement
-| Phase | When | Work | Hand to A / team |
+### Workstream 2: Lab Infrastructure, Traffic Generation & Benchmarking
+| Milestone | Timeline | Deliverables | Status |
 |---|---|---|---|
-| B1 | Mon 26 | Repo + `docs/contract.md`; toolchain; namespace env; DNS server (RRL off); legit client v0; collectors v0; **B0 fact script on lab PCs when ready** | kernel/driver/NIC facts to A |
-| B2 | Tue 27 | Generators S1-S3 + guard; baselines B1/B2 with measured-limit verification; orchestrator v1 + `analyze.py` v0; 12-run dry run in namespaces | |
-| B3 | Wed 28 AM | **Calibration on lab PCs** (no XDP needed); levels/limits into params file; smoke test one run per config | `params` file |
-| B4 | Wed PM-Thu AM | **Completed:** 108 physical runs (Target Tier) + 36 namespace runs; SHA-256 checksums generated; **data freeze complete** | `results/raw/`, `results/checksums_physical_108.sha256` |
-| B5 | Thu-Fri | **Active:** 300 DPI publication figures generated (`results/figures/`); analysis tables; report drafting | report sections |
-| B6 | Fri | Traffic side of demo; backup demo video; rehearse at least twice; check repo and deliverables | |
+| M1 | Mon 26 | Repository, toolchain verification, namespace testbed, authoritative DNS (RRL off), legit client v0, collectors v0 | Completed |
+| M2 | Tue 27 | Traffic generators S1-S3 + safety guard, baselines B1/B2, orchestrator v1, initial dry run | Completed |
+| M3 | Wed 28 AM | Empirical calibration on lab PCs (finding $S = 100,000$ pps), smoke test across B0, B1, B2, X | Completed |
+| M4 | Wed PM-Thu AM | Phase B4 main matrix: 108 physical runs (Target Tier) + 36 namespace runs; SHA-256 checksums; **data freeze complete** | Completed |
+| M5 | Thu-Fri | High-resolution 300 DPI publication figures (`results/figures/`), statistical summaries, technical report drafting | Active |
+| M6 | Fri | Live demonstration rehearsal, backup video capture, final verification of deliverables | Scheduled |
 
-**B can do today without lab access or XDP:** repo, toolchain, namespace env, DNS server, legit client, generators + guard, nftables baselines, collectors, orchestrator + analysis (test with B0/B2 and shortened windows), an Ubuntu 22.04 VM for dry-running the install and B0 scripts.
-
-### Handoff contract (agree first; keep in `docs/contract.md`)
+### Interface Contract
 - Loader commands: `load`, `attach`, `config`, `stats`, `detach` (+ watchdog).
 - Stats CSV columns (section 7.5), run-directory naming `<scenario>_<config>_<level>_<rep>` (scenario S1/S2/S3; config B0/B1/B2/X; level 0.5x/1x/2x), shared params file.
 
@@ -387,13 +385,13 @@ Roles are labelled A and B (assignment of names to roles decided by the team; **
 
 ## 14. Revised schedule (compressed; replaces the submitted timeline)
 
-| Day | Person A | Person B | Checkpoint |
+| Day | XDP Subsystem | Measurement & Orchestration | Checkpoint |
 |---|---|---|---|
-| **Mon 26 Oct** | A1: XDP v1 + loader v1 | B1: repo, namespaces, DNS, legit client, lab facts | C1 22:00: XDP v1 loads/counts on veth; B0 end-to-end in namespaces |
-| **Tue 27** | A2: limiters + tests | B2: generators, baselines, orchestrator, dry run | C2 22:00: limiters pass tests; one dry run completes |
-| **Wed 28** | A3: lab bring-up, **freeze 12:00**; start report | B3: calibration, then matrix | Freeze 12:00; **tier decision 18:00** |
-| **Thu 29** | A4: report, support re-runs | B4/B5: finish matrix, **data freeze 12:00**, analysis | Draft complete 20:00 |
-| **Fri 30** | A5: demo, repo, **submit** | B6: plots, backup video, rehearsal | Submit |
+| **Mon 26 Oct** | XDP v1 + loader v1 | Repo, namespaces, DNS, legit client, lab facts | C1 22:00: XDP v1 loads/counts on veth; B0 end-to-end in namespaces |
+| **Tue 27** | Limiters + tests | Generators, baselines, orchestrator, dry run | C2 22:00: limiters pass tests; dry run completes |
+| **Wed 28** | Lab bring-up, freeze 12:00; start report | Calibration, smoke runs, then matrix | Freeze 12:00; Target Tier 108 runs selected |
+| **Thu 29** | Report drafting, telemetry validation | 108 physical runs + 36 namespace runs; **data freeze 12:00**, analysis | Data freeze complete; checksums generated |
+| **Fri 30** | Demo script, repo cleanup, **submit** | 300 DPI figures, backup video, rehearsal | Submit |
 | **Sat 31** | buffer only | buffer only | |
 
 **Go/no-go rules:**

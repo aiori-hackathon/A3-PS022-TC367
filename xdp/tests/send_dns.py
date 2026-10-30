@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Small functional-test sender, restricted to the Person A veth namespace.
-Not Person B's performance/calibration harness. Ethernet frames use IPv4/UDP/53.
+"""Small functional-test sender, restricted to the isolated test veth namespace.
+Ethernet frames use IPv4/UDP/53.
 """
 import argparse
 import ipaddress

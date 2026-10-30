@@ -135,7 +135,7 @@ sudo ./src/scripts/run_b0_test.sh
 
 ---
 
-## 3. Person A Acceptance Test Protocol
+## 3. XDP Filter Acceptance Test Protocol
 
 Run these verification tests inside the development namespace to validate the XDP program:
 

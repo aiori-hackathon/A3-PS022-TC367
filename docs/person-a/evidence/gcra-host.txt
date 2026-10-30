@@ -1,1 +1,0 @@
-PASS: deterministic GCRA, overflow guards, and 8-thread fixed-time burst

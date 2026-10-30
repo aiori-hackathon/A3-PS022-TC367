@@ -98,7 +98,7 @@ def main():
     if os.geteuid() != 0:
         raise RuntimeError("Run with sudo python3 xdp/tests/test_parser.py")
     # Run only while detached and after config --src-rate 0 --glob-rate 0.
-    report = Path(__file__).resolve().parents[2] / "docs/person-a/evidence/a1-parser.txt"
+    report = Path(__file__).resolve().parent / "evidence/a1-parser.txt"
     report.parent.mkdir(parents=True, exist_ok=True)
     with report.open("w") as log, tempfile.TemporaryDirectory(prefix="kavach-test-") as work:
         def say(message):

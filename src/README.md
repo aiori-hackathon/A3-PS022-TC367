@@ -39,20 +39,20 @@ High-volume UDP/53 DNS query floods overwhelm Linux systems because the operatin
 
 ```text
 kavach/
-├── xdp/                       # Person A: eBPF/XDP kernel program & controller
+├── xdp/                       # Core eBPF/XDP kernel program & controller
 │   ├── kavach_xdp.c           # Core BPF packet filter (bounded parser + GCRA)
 │   ├── gcra.h                 # Atomic CAS Generic Cell Rate Algorithm
 │   ├── kavach_ctl.py          # Loader, runtime config, telemetry, and watchdog
 │   ├── Makefile               # eBPF build targets (-mcpu=v3 and approximate)
 │   └── tests/                 # Unit tests (controller, parser, host-test)
-├── src/                       # Person B: Lab harness, traffic, baselines & metrics
+├── src/                       # Lab harness, traffic, baselines & metrics
 │   ├── AGENTS.md              # Project context, rules, and synchronization guidelines
 │   ├── README.md              # Project overview and quick start guide
 │   ├── params.yaml            # Shared parameters (calibration, limits, timings)
 │   ├── params.json            # Mirrored JSON parameter definitions
 │   ├── docs/                  # Architecture specifications and ADRs
 │   │   ├── architecture.md    # Detailed packet pipeline and GCRA formulation
-│   │   ├── decisions.md       # Architecture Decision Records (ADRs 001 - 023)
+│   │   ├── decisions.md       # Architecture Decision Records (ADRs 001 - 032)
 │   │   ├── known-issues.md    # Hardware caveats and limitations
 │   │   └── setup.md           # Lab hardware inventory and host tuning
 │   ├── scripts/               # Testbed automation and experiment orchestration
@@ -91,7 +91,7 @@ kavach/
 │       ├── start_dns.sh       # Starts NSD or lightweight fallback in 'srv'
 │       ├── stop_dns.sh        # Graceful shutdown of DNS daemons
 │       └── test_dns.sh        # DNS resolution verification tool
-├── docs/person-a/             # Person A technical documentation & handoff contracts
+├── docs/                      # Consolidated technical documentation & runbooks
 └── results/raw/               # Raw experimental telemetry artifacts
 ```
 

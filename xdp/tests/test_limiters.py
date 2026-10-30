@@ -33,7 +33,7 @@ def main():
     if '10.200.1.1' not in [a['local'] for a in info['addr_info']]:
         raise RuntimeError('Expected test address 10.200.1.1 on veth0')
     mac=info['address']
-    report=HERE.parents[1]/'docs/person-a/evidence/a2-limiters.json'
+    report=HERE / 'evidence/a2-limiters.json'
     report.parent.mkdir(parents=True,exist_ok=True)
     scenarios=[
         ('below',50,5,0,1,'10.200.1.2','30',0),

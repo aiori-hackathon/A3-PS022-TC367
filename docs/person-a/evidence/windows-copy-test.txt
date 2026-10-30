@@ -1,4 +1,0 @@
-PASS: import script parsed by native PowerShell parser.
-PASS: exercised against an isolated clean Git fixture.
-PASS: preserved team README, Person B sentinel file, and existing ignore rule.
-No user repository was committed or pushed by this test.

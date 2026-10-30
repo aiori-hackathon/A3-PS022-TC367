@@ -44,7 +44,7 @@ results/namespaces/
 results/plots/kavach_summary.png
 
 # Evidence local folders
-docs/person-a/evidence/local-*/
+xdp/tests/evidence/local-*/
 
 # Temporary USB pendrive / staging directories
 resultsL*/
