@@ -69,21 +69,23 @@ eBPF safety mandates verifier-guaranteed execution bounds and absence of out-of-
 
 ### 2.2 Dual-Tier Generic Cell Rate Algorithm (GCRA)
 
-Kavach implements the **Generic Cell Rate Algorithm (GCRA)** (ITU-T Recommendation I.371), a continuous-time leaky bucket tracking a single 64-bit integer timestamp per flow: the **Theoretical Arrival Time ($TAT$)**.
+Kavach implements the **Generic Cell Rate Algorithm (GCRA)** (ITU-T Recommendation I.371), a continuous-time leaky bucket tracking a single 64-bit integer timestamp per flow: the **Theoretical Arrival Time (TAT)**.
 
-- **Parameters (precomputed in user space):**
+**Parameters (precomputed in user space):**
 
-  $$\text{Emission Interval: } T = \frac{10^9}{\text{rate\_pps}} \quad (\text{nanoseconds})$$
+```
+Emission Interval:  T = 10^9 / rate_pps               (nanoseconds)
+Burst Tolerance:    τ = (burst_packets - 1) × T       (nanoseconds)
+```
 
-  $$\text{Burst Tolerance: } \tau = (\text{burst\_packets} - 1) \times T \quad (\text{nanoseconds})$$
+**Conformance check at packet arrival** (`t_now` is the current time from `bpf_ktime_get_ns()`):
 
-- **Conformance check at packet arrival ($t_{\text{now}} = \text{bpf\_ktime\_get\_ns()}$):**
+```
+TAT' = max(TAT_stored, t_now)
 
-  $$TAT' = \max(TAT_{\text{stored}}, t_{\text{now}})$$
-
-  $$\text{If } (TAT' - t_{\text{now}}) > \tau \implies \mathbf{XDP\_DROP}$$
-
-  $$TAT_{\text{new}} = TAT' + T \implies \mathbf{XDP\_PASS}$$
+if (TAT' - t_now) > τ :   XDP_DROP
+else :                    TAT_new = TAT' + T   →   XDP_PASS
+```
 
 All arithmetic runs in pure 64-bit integer nanoseconds without floating-point math, periodic timers, or token multiplication overflow hazards.
 
@@ -94,7 +96,7 @@ All arithmetic runs in pure 64-bit integer nanoseconds without floating-point ma
 
 ### 2.4 Multicore Concurrency via BPF Atomic CAS
 
-To prevent race conditions across CPU cores updating the shared global $TAT$, Kavach uses a bounded 8-iteration atomic compare-and-swap loop (`__sync_val_compare_and_swap` with `#pragma unroll`) in [`xdp/gcra.h`](xdp/gcra.h). This maintains a single, globally accurate aggregate limit across all CPU cores without locks. If all 8 attempts lose the race, the packet is dropped and counted as `drop_busy`.
+To prevent race conditions across CPU cores updating the shared global TAT, Kavach uses a bounded 8-iteration atomic compare-and-swap loop (`__sync_val_compare_and_swap` with `#pragma unroll`) in [`xdp/gcra.h`](xdp/gcra.h). This maintains a single, globally accurate aggregate limit across all CPU cores without locks. If all 8 attempts lose the race, the packet is dropped and counted as `drop_busy`.
 
 ### 2.5 In-Kernel BPF Maps Layout
 
@@ -149,7 +151,7 @@ MODE 2 — SINGLE SYSTEM (native driver XDP)
 
 ### 3.2 Single-System Namespace Testbed (Native Mode)
 
-- Configured using network namespaces (`gen` $\leftrightarrow$ `srv`) over a virtual ethernet pair (`veth`).
+- Configured using network namespaces (`gen` ↔ `srv`) over a virtual ethernet pair (`veth`).
 - In this environment, the Linux `veth` driver provides native XDP driver support (`xdp_mode: native`), executing drops directly inside the driver receive hook (`drivers/net/veth.c`) before `alloc_skb`.
 - Confirmed a **65% reduction in kernel SoftIRQ CPU load** (from 2.37% down to 0.84%), verifying native driver efficiency (ADR-031).
 
@@ -178,11 +180,11 @@ To strictly comply with AIORI-3 cybersecurity safety rules, all traffic generati
 
 ---
 
-## 5. Empirical Calibration ($S = 100,000$ PPS)
+## 5. Empirical Calibration (S = 100,000 PPS)
 
 Rather than selecting arbitrary flood volumes, an empirical saturation sweep on Baseline B0 (No Filter) determined the hardware capacity knee. A step is flagged saturated when legitimate query success drops below 99%.
 
-| Offered Rate (PPS) | Queries Sent | Answered | Success % | $p50$ Latency | $p95$ Latency | Status |
+| Offered Rate (PPS) | Queries Sent | Answered | Success % | p50 Latency | p95 Latency | Status |
 |:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 | 5,000 | 1,000 | 1,000 | 100.0% | 0.626 ms | 0.902 ms | OK |
 | 10,000 | 1,000 | 1,000 | 100.0% | 0.520 ms | 0.776 ms | OK |
@@ -194,22 +196,22 @@ Rather than selecting arbitrary flood volumes, an empirical saturation sweep on 
 | 50,000 | 1,000 | 1,000 | 100.0% | 0.556 ms | 0.686 ms | OK |
 | 60,000 | 1,000 | 1,000 | 100.0% | 0.551 ms | 0.685 ms | OK |
 | 75,000 | 1,000 | 1,000 | 100.0% | 0.572 ms | 0.679 ms | OK |
-| **100,000 ($S$)** | 1,000 | 886 | **88.60%** | **15.603 ms** | **28.224 ms** | **SATURATED** |
+| **100,000 (S)** | 1,000 | 886 | **88.60%** | **15.603 ms** | **28.224 ms** | **SATURATED** |
 
 At 100,000 PPS the queue saturates: success falls to 88.60% and median latency rises about 27× compared with the 75,000 PPS step. Raw data: [`results/calibration/`](results/calibration/).
 
 ### Calibrated Parameters ([`src/params.yaml`](src/params.yaml))
 
-- **Saturation Point:** $S = 100,000$ PPS
-- **Matrix Load Levels:** $0.5\times S = 50,000$ PPS, $1.0\times S = 100,000$ PPS, $2.0\times S = 200,000$ PPS
-- **Limiter Limits:** Per-source rate: 500 PPS (burst: 20) | Global aggregate rate: 70,000 PPS ($0.70\times S$, burst: 20)
+- **Saturation Point:** S = 100,000 PPS
+- **Matrix Load Levels:** 0.5 × S = 50,000 PPS, 1.0 × S = 100,000 PPS, 2.0 × S = 200,000 PPS
+- **Limiter Limits:** Per-source rate: 500 PPS (burst: 20) | Global aggregate rate: 70,000 PPS (0.70 × S, burst: 20)
 - **Legitimate Client:** Open-loop, fixed 100 QPS (10 ms interval), 0 retries, 1.5 s hard timeout.
 
 ---
 
 ## 6. Physical Benchmark Matrix Results (108 Runs)
 
-The benchmark matrix evaluates **3 attack scenarios × 4 configurations × 3 load levels (0.5×, 1.0×, 2.0× $S$) × 3 repetitions = 108 runs**, executed in a seeded pseudo-random order (seed 42) under identical physical lab conditions. This gives **9 runs per scenario/configuration cell**. Telemetry was synchronously harvested across driver, kernel softnet, filter, and socket layers.
+The benchmark matrix evaluates **3 attack scenarios × 4 configurations × 3 load levels (0.5×, 1.0×, 2.0× S) × 3 repetitions = 108 runs**, executed in a seeded pseudo-random order (seed 42) under identical physical lab conditions. This gives **9 runs per scenario/configuration cell**. Telemetry was synchronously harvested across driver, kernel softnet, filter, and socket layers.
 
 **Scenarios**
 
@@ -230,9 +232,9 @@ The benchmark matrix evaluates **3 attack scenarios × 4 configurations × 3 loa
 
 ### 6.1 Statistical Summary
 
-Median across the 9 runs of each row, **pooled over the 0.5×, 1.0× and 2.0× $S$ load levels** (source: [`results/analysis_table.csv`](results/analysis_table.csv)).
+Median across the 9 runs of each row, **pooled over the 0.5×, 1.0× and 2.0× S load levels** (source: [`results/analysis_table.csv`](results/analysis_table.csv)).
 
-| Scenario | Config | Runs | Legit Success (Median) | Legit Success (IQR) | $p50$ Latency (ms) | $p95$ Latency (ms) | Core 1 CPU % | Filter Drops | Socket Drops (`UdpInErrors`) |
+| Scenario | Config | Runs | Legit Success (Median) | Legit Success (IQR) | p50 Latency (ms) | p95 Latency (ms) | Core 1 CPU % | Filter Drops | Socket Drops (`UdpInErrors`) |
 |---|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 | **S1 (Single-Source)** | **B0 (No Filter)** | 9 | **87.00%** | 27.19% | 14.30 | 27.85 | 14.14% | 0 | **920,180** |
 | | **B1 (nftables Raw)** | 9 | 100.00% | 0.00% | 0.47 | 1.60 | 6.55% | 5,966,670 | 0 |
@@ -250,11 +252,11 @@ Median across the 9 runs of each row, **pooled over the 0.5×, 1.0× and 2.0× $
 ### 6.2 Key Empirical Takeaways
 
 1. **S1 (Single-Source Flood Mitigation):**
-   - Under Baseline B0, socket receive queues saturated: median 920,180 socket-layer drops per run (up to 2,400,595), median legitimate success of 87.00%, and median $p50$ latency of $14.30\text{ ms}$.
-   - Kavach XDP completely neutralized the flood, achieving **100.00% query success in every S1 run**, **$0.45\text{ ms}$ median $p50$ latency** and zero socket drops. This is roughly 12% lower than `nftables netdev` ($0.51\text{ ms}$) and roughly 4% lower than `nftables raw` ($0.47\text{ ms}$); these differences are small compared with the run-to-run spread ($p50$ IQR of about 0.9–1.0 ms), so the three filters are comparable on latency in this testbed.
+   - Under Baseline B0, socket receive queues saturated: median 920,180 socket-layer drops per run (up to 2,400,595), median legitimate success of 87.00%, and median p50 latency of 14.30 ms.
+   - Kavach XDP completely neutralized the flood, achieving **100.00% query success in every S1 run**, **0.45 ms median p50 latency** and zero socket drops. This is roughly 12% lower than `nftables netdev` (0.51 ms) and roughly 4% lower than `nftables raw` (0.47 ms); these differences are small compared with the run-to-run spread (p50 IQR of about 0.9–1.0 ms), so the three filters are comparable on latency in this testbed.
 2. **S2 (Distributed Flood Resilience):**
-   - Under Baseline B0, median query success collapsed to **72.30%** with median $p95$ latency exploding to **61.45 ms**.
-   - Kavach XDP maintained sub-millisecond median response times ($0.59\text{ ms}$) and eliminated all socket buffer drops (`UdpInErrors == 0`); the `nftables` baselines reached comparable values (0.60 ms and 0.57 ms).
+   - Under Baseline B0, median query success collapsed to **72.30%** with median p95 latency exploding to **61.45 ms**.
+   - Kavach XDP maintained sub-millisecond median response times (0.59 ms) and eliminated all socket buffer drops (`UdpInErrors == 0`); the `nftables` baselines reached comparable values (0.60 ms and 0.57 ms).
 3. **Drops by Layer Hierarchy:**
    - Across all 27 Kavach XDP runs, no drops were recorded at the NIC, softnet or socket layers. Every drop was a filter-layer (Layer 3) drop, so UDP socket queue overflow never occurred.
 
@@ -400,6 +402,6 @@ python3 src/scripts/analyze.py --input-dir results/raw/ --output-dir results/
 | **No-Filter & nftables Baselines** | [`src/baselines/none.sh`](src/baselines/none.sh), [`b1_prerouting.sh`](src/baselines/b1_prerouting.sh), [`b2_netdev.sh`](src/baselines/b2_netdev.sh) | Parameter-Matched Parity |
 | **Three Synthetic Load Scenarios** | S1 (Single Source), S2 (Distributed 1,000 IPs), S3 (Pulsing Bursts) | Implemented & Calibrated |
 | **Performance Measurements** | [`results/analysis_table.csv`](results/analysis_table.csv), [`analysis_summary.json`](results/analysis_summary.json) | 108 Physical Runs Analyzed |
-| **Analysis of Legitimate Query Impact** | Open-Loop Client ([`legit_client.py`](src/traffic/legit_client.py)), $p50/p95/p99$ Latencies | 100 QPS, 0 Retries, 1.5 s Timeout |
+| **Analysis of Legitimate Query Impact** | Open-Loop Client ([`legit_client.py`](src/traffic/legit_client.py)), p50/p95/p99 Latencies | 100 QPS, 0 Retries, 1.5 s Timeout |
 | **Technical Proposal & Demonstration** | [`A3-PS022-TC367_ProposedSolution.pdf`](A3-PS022-TC367_ProposedSolution.pdf), [Video](https://youtu.be/7cTRoE_1nWI) | Verified & Uploaded |
 | **Pseudocode Snippet for Mentors** | [`docs/architecture.md`](docs/architecture.md), Section 3 | Ready for Defense |
