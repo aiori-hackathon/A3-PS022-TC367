@@ -157,7 +157,30 @@ MODE 2 — SINGLE SYSTEM (native driver XDP)
 
 ### 3.3 Physical Testbed Photographic Evidence
 
-Photographs and screenshots are archived in [`docs/media/`](docs/media/README.md) (see ADR-033).
+Photographs and screenshots are archived in [`docs/media/`](docs/media/README.md) (see ADR-033). Three previews are shown below; click any image to open it at full size. The remaining files are linked in the table.
+
+<table>
+  <tr>
+    <td align="center" width="33%">
+      <a href="docs/media/testbed_photos/generator_pc2_run47_s2.jpg">
+        <img src="docs/media/testbed_photos/generator_pc2_run47_s2.jpg" alt="Generator PC 2 console during run S2 baseline" width="100%">
+      </a>
+      <br><sub><b>Generator PC 2</b> — run S2 baseline</sub>
+    </td>
+    <td align="center" width="33%">
+      <a href="docs/media/testbed_photos/target_pc1_daemon_drops.jpg">
+        <img src="docs/media/testbed_photos/target_pc1_daemon_drops.jpg" alt="Target PC 1 console showing telemetry and Layer 3 drops" width="100%">
+      </a>
+      <br><sub><b>Target PC 1</b> — telemetry and Layer 3 drops</sub>
+    </td>
+    <td align="center" width="33%">
+      <a href="docs/media/testbed_photos/target_pc1_daemon_setup.jpg">
+        <img src="docs/media/testbed_photos/target_pc1_daemon_setup.jpg" alt="Target PC 1 console showing daemon execution and setup" width="100%">
+      </a>
+      <br><sub><b>Target PC 1</b> — daemon execution and setup</sub>
+    </td>
+  </tr>
+</table>
 
 | File | Host | Description |
 |---|---|---|
